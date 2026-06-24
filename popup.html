@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8f9fa;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #5f6368;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+
+    /* --- PROPERTY BAR --- */
+    .property-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .property-bar label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #5f6368;
+      white-space: nowrap;
+    }
+
+    .property-bar select {
+      flex: 1;
+      font-size: 12px;
+      padding: 5px 8px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      background: white;
+      color: #202124;
+      cursor: pointer;
+      min-width: 0;
+    }
+
+    .btn-bar-icon {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 5px 7px;
+      font-size: 13px;
+      cursor: pointer;
+      line-height: 1;
+      flex-shrink: 0;
+      color: #5f6368;
+    }
+
+    .btn-bar-icon:hover { background: #f1f3f4; border-color: #bbb; }
+
+    .btn-bar-icon.primary {
+      background: #4285f4;
+      color: white;
+      border-color: #4285f4;
+      font-size: 16px;
+    }
+
+    .btn-bar-icon.primary:hover { background: #1a73e8; }
+
+    /* --- METRICS + DATE ROW --- */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    #metrics-bar {
+      font-size: 11px;
+      color: #5f6368;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 18px;
+    }
+
+    #metrics-bar strong { color: #202124; }
+
+    .metric-sep { color: #dadce0; }
+
+    .metric-hint {
+      color: #9aa0a6;
+      font-style: italic;
+    }
+
+    .metric-connect {
+      background: none;
+      border: none;
+      color: #4285f4;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    #date-pills {
+      display: flex;
+      gap: 4px;
+    }
+
+    .date-pill {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 2px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #5f6368;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .date-pill.active {
+      background: #4285f4;
+      color: white;
+      border-color: #4285f4;
+    }
+
+    .date-pill:hover:not(.active) {
+      border-color: #4285f4;
+      color: #4285f4;
+    }
+
+    /* --- REPORT LIST --- */
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #9aa0a6;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 10px 0 5px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 12px;
+      margin-bottom: 5px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.12s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover { background: #e8f0fe; border-color: #4285f4; }
+
+    .btn-icon { font-size: 17px; flex-shrink: 0; }
+    .btn-text { display: flex; flex-direction: column; }
+    .btn-title { font-size: 13px; font-weight: 600; color: #202124; }
+    .btn-desc  { font-size: 11px; color: #5f6368; margin-top: 1px; }
+
+    /* --- SHARED FORM STYLES --- */
+    #add-view, #manage-view { display: none; }
+
+    #add-view h2, #manage-view h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #202124;
+      margin-bottom: 4px;
+    }
+
+    #add-view p, #manage-view .view-desc {
+      font-size: 11px;
+      color: #5f6368;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .field { margin-bottom: 12px; }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #5f6368;
+      margin-bottom: 4px;
+    }
+
+    .field input {
+      width: 100%;
+      font-size: 12px;
+      padding: 7px 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      color: #202124;
+    }
+
+    .field input:focus { outline: none; border-color: #4285f4; }
+
+    .field .hint {
+      font-size: 10px;
+      color: #9aa0a6;
+      margin-top: 3px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover { background: #1a73e8; }
+
+    .btn-secondary {
+      flex: 1;
+      background: white;
+      color: #5f6368;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover { background: #f1f3f4; }
+
+    #add-error {
+      font-size: 11px;
+      color: #d93025;
+      margin-top: 8px;
+      min-height: 14px;
+    }
+
+    /* --- MANAGE VIEW --- */
+    .manage-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+
+    .manage-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .manage-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #202124;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .manage-label:hover { color: #4285f4; }
+
+    .manage-id {
+      font-size: 10px;
+      color: #9aa0a6;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rename-input {
+      font-size: 13px;
+      font-weight: 600;
+      color: #202124;
+      border: none;
+      border-bottom: 2px solid #4285f4;
+      outline: none;
+      background: transparent;
+      width: 100%;
+      padding: 0;
+    }
+
+    .manage-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .btn-icon-sm {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px 5px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: background 0.1s;
+    }
+
+    .btn-icon-sm:hover { background: #f1f3f4; }
+    .btn-icon-sm.btn-danger { color: #d93025; background: #fce8e6; font-size: 11px; font-weight: 700; }
+
+    .empty-msg {
+      font-size: 12px;
+      color: #9aa0a6;
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    /* --- EXPORT/IMPORT --- */
+    .io-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .btn-sm {
+      flex: 1;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #5f6368;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-sm:hover { background: #f1f3f4; border-color: #bbb; }
+
+    #import-row {
+      margin-top: 8px;
+      display: none;
+    }
+
+    #import-input {
+      width: 100%;
+      height: 70px;
+      font-size: 11px;
+      font-family: monospace;
+      padding: 7px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      resize: none;
+      color: #202124;
+    }
+
+    #import-input:focus { outline: none; border-color: #4285f4; }
+
+    #import-error {
+      font-size: 11px;
+      color: #d93025;
+      margin: 4px 0;
+      min-height: 14px;
+    }
+
+    .manage-footer {
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MAIN VIEW -->
+  <div id="main-view">
+    <h1>📊 GA4 Navigator</h1>
+
+    <div class="property-bar">
+      <label>Property:</label>
+      <select id="propertySelect"></select>
+      <button class="btn-bar-icon" id="btn-manage" title="Manage properties">⚙️</button>
+      <button class="btn-bar-icon primary" id="btn-add" title="Add a property">+</button>
+    </div>
+
+    <div class="controls-row">
+      <div id="metrics-bar"></div>
+      <div id="date-pills"></div>
+    </div>
+
+    <div id="report-list"></div>
+  </div>
+
+  <!-- ADD PROPERTY VIEW -->
+  <div id="add-view">
+    <h1>📊 GA4 Navigator</h1>
+    <h2>Add a Property</h2>
+    <p>Give it a nickname, then paste any URL from that GA4 account — I'll find the ID automatically.</p>
+
+    <div class="field">
+      <label>Nickname</label>
+      <input type="text" id="prop-name" placeholder="e.g. Work Site" />
+    </div>
+
+    <div class="field">
+      <label>Paste any GA4 URL from that account</label>
+      <input type="text" id="prop-id" placeholder="https://analytics.google.com/..." />
+      <div class="hint">Copy the URL from your browser while you're in that GA4 account</div>
+    </div>
+
+    <div id="add-error"></div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" id="btn-cancel">Cancel</button>
+      <button class="btn-primary" id="btn-save">Save</button>
+    </div>
+  </div>
+
+  <!-- MANAGE PROPERTIES VIEW -->
+  <div id="manage-view">
+    <h1>📊 GA4 Navigator</h1>
+    <h2>Manage Properties</h2>
+    <p class="view-desc">Click a name to rename it. 📋 copies the property ID.</p>
+
+    <div id="manage-list"></div>
+
+    <div class="io-row">
+      <button class="btn-sm" id="btn-export">📤 Export JSON</button>
+      <button class="btn-sm" id="btn-import-toggle">📥 Import JSON</button>
+    </div>
+
+    <div id="import-row">
+      <textarea id="import-input" placeholder='[{"label":"Site Name","id":"a123p456"}]'></textarea>
+      <div id="import-error"></div>
+      <button class="btn-primary" id="btn-import-apply" style="width:100%">Apply Import</button>
+    </div>
+
+    <div class="manage-footer">
+      <button class="btn-primary" id="btn-manage-done" style="width:100%">Done</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
