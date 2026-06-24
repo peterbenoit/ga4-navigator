@@ -35,6 +35,8 @@ function getSelectedIndex() { return parseInt(localStorage.getItem("ga4_selected
 function saveSelectedIndex(i) { localStorage.setItem("ga4_selected", String(i)); }
 function getDateRange()     { return localStorage.getItem("ga4_date_range") || "last28days"; }
 function saveDateRange(r)   { localStorage.setItem("ga4_date_range", r); }
+function getShortcuts()     { return JSON.parse(localStorage.getItem("ga4_shortcuts") || "[]"); }
+function saveShortcuts(s)   { localStorage.setItem("ga4_shortcuts", JSON.stringify(s)); }
 
 // --- Links ---
 
@@ -63,9 +65,72 @@ function updateLinks(propertyId) {
   document.querySelectorAll(".ga4-link").forEach(a => {
     a.href = buildHref(propertyId, a.dataset.path, range);
   });
+  document.querySelectorAll(".shortcut-link").forEach(a => {
+    a.href = buildHref(a.dataset.propertyId, a.dataset.path, range);
+  });
 }
 
 // --- Render reports ---
+
+function getPropertyLabel(propertyId) {
+  const property = getProperties().find(p => p.id === propertyId);
+  return property?.label || propertyId;
+}
+
+function renderShortcuts() {
+  const container = document.getElementById("shortcut-list");
+  container.innerHTML = "";
+
+  const shortcuts = getShortcuts();
+  if (shortcuts.length === 0) {
+    const label = document.createElement("div");
+    label.className = "section-label with-action";
+    label.innerHTML = `<span>Favorites</span>`;
+
+    const addBtn = document.createElement("button");
+    addBtn.className = "section-action";
+    addBtn.type = "button";
+    addBtn.textContent = "Add";
+    addBtn.onclick = showManage;
+    label.appendChild(addBtn);
+
+    container.appendChild(label);
+    return;
+  }
+
+  const label = document.createElement("div");
+  label.className = "section-label with-action";
+  label.innerHTML = `<span>Favorites</span>`;
+
+  const manageBtn = document.createElement("button");
+  manageBtn.className = "section-action";
+  manageBtn.type = "button";
+  manageBtn.textContent = "Manage";
+  manageBtn.onclick = showManage;
+  label.appendChild(manageBtn);
+  container.appendChild(label);
+
+  shortcuts.forEach(shortcut => {
+    const a = document.createElement("a");
+    a.className = "btn shortcut-link";
+    a.dataset.propertyId = shortcut.propertyId;
+    a.dataset.path = shortcut.path;
+    a.href = buildHref(shortcut.propertyId, shortcut.path, getDateRange());
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.innerHTML = `
+      <span class="btn-icon">⭐</span>
+      <span class="btn-text">
+        <span class="btn-title"></span>
+        <span class="btn-desc"></span>
+        <span class="shortcut-meta"></span>
+      </span>`;
+    a.querySelector(".btn-title").textContent = shortcut.label;
+    a.querySelector(".btn-desc").textContent = getPropertyLabel(shortcut.propertyId);
+    a.querySelector(".shortcut-meta").textContent = shortcut.path.replace(/^\//, "");
+    container.appendChild(a);
+  });
+}
 
 function renderReports() {
   const container = document.getElementById("report-list");
@@ -81,6 +146,7 @@ function renderReports() {
       a.dataset.path = item.path;
       a.href = "#";
       a.target = "_blank";
+      a.rel = "noopener noreferrer";
       a.innerHTML = `
         <span class="btn-icon">${item.icon}</span>
         <span class="btn-text">
@@ -106,6 +172,7 @@ function renderDatePills() {
       saveDateRange(value);
       const props = getProperties();
       updateLinks(props[getSelectedIndex()]?.id || "");
+      renderShortcuts();
       renderDatePills();
     };
     container.appendChild(btn);
@@ -210,6 +277,7 @@ function showMain() {
   if (properties.length === 0) {
     select.appendChild(Object.assign(document.createElement("option"), { textContent: "No properties — add one" }));
     updateLinks("");
+    renderShortcuts();
     document.getElementById("metrics-bar").textContent = "";
   } else {
     properties.forEach((p, i) => {
@@ -219,6 +287,7 @@ function showMain() {
       if (i === idx) opt.selected = true;
       select.appendChild(opt);
     });
+    renderShortcuts();
     updateLinks(properties[idx]?.id || "");
     fetchMetrics(properties[idx]?.id || "");
 
@@ -243,6 +312,7 @@ function showAdd() {
 function showManage() {
   showView("manage-view");
   renderManageList();
+  renderShortcutManageList();
 }
 
 // --- Manage list ---
@@ -350,10 +420,166 @@ function renderManageList() {
   });
 }
 
+function resetShortcutForm() {
+  document.getElementById("shortcut-label").value = "";
+  document.getElementById("shortcut-url").value = "";
+  document.getElementById("shortcut-error").textContent = "";
+}
+
+function renderShortcutManageList() {
+  const shortcuts = getShortcuts();
+  const list = document.getElementById("shortcut-manage-list");
+  list.innerHTML = "";
+
+  const label = document.createElement("div");
+  label.className = "section-label";
+  label.textContent = "Saved Favorites";
+  list.appendChild(label);
+
+  if (shortcuts.length === 0) {
+    const msg = document.createElement("p");
+    msg.className = "empty-msg";
+    msg.textContent = "No favorite shortcuts yet.";
+    list.appendChild(msg);
+    return;
+  }
+
+  shortcuts.forEach((shortcut, i) => {
+    const row = document.createElement("div");
+    row.className = "manage-row";
+
+    const info = document.createElement("div");
+    info.className = "manage-info";
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "manage-label";
+    nameEl.textContent = shortcut.label;
+    nameEl.title = "Click to rename";
+    nameEl.onclick = () => {
+      const input = document.createElement("input");
+      input.className = "rename-input";
+      input.value = shortcut.label;
+      info.replaceChild(input, nameEl);
+      input.focus();
+      input.select();
+      const commit = () => {
+        const val = input.value.trim();
+        if (val && val !== shortcut.label) {
+          const updated = getShortcuts();
+          updated[i].label = val;
+          saveShortcuts(updated);
+        }
+        renderShortcutManageList();
+      };
+      input.onblur = commit;
+      input.onkeydown = e => {
+        if (e.key === "Enter")  { e.preventDefault(); commit(); }
+        if (e.key === "Escape") renderShortcutManageList();
+      };
+    };
+
+    const pathEl = document.createElement("span");
+    pathEl.className = "manage-id";
+    pathEl.textContent = `${getPropertyLabel(shortcut.propertyId)} · ${shortcut.path}`;
+
+    info.appendChild(nameEl);
+    info.appendChild(pathEl);
+
+    const actions = document.createElement("div");
+    actions.className = "manage-actions";
+
+    const upBtn = document.createElement("button");
+    upBtn.className = "btn-icon-sm";
+    upBtn.textContent = "↑";
+    upBtn.title = "Move up";
+    upBtn.disabled = i === 0;
+    upBtn.onclick = () => {
+      const updated = getShortcuts();
+      [updated[i - 1], updated[i]] = [updated[i], updated[i - 1]];
+      saveShortcuts(updated);
+      renderShortcutManageList();
+    };
+
+    const downBtn = document.createElement("button");
+    downBtn.className = "btn-icon-sm";
+    downBtn.textContent = "↓";
+    downBtn.title = "Move down";
+    downBtn.disabled = i === shortcuts.length - 1;
+    downBtn.onclick = () => {
+      const updated = getShortcuts();
+      [updated[i], updated[i + 1]] = [updated[i + 1], updated[i]];
+      saveShortcuts(updated);
+      renderShortcutManageList();
+    };
+
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "btn-icon-sm";
+    copyBtn.textContent = "📋";
+    copyBtn.title = "Copy GA4 URL";
+    copyBtn.onclick = () => {
+      const url = buildHref(shortcut.propertyId, shortcut.path, getDateRange());
+      navigator.clipboard.writeText(url).then(() => {
+        copyBtn.textContent = "✅";
+        setTimeout(() => { copyBtn.textContent = "📋"; }, 1500);
+      });
+    };
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "btn-icon-sm";
+    deleteBtn.textContent = "🗑️";
+    deleteBtn.title = "Delete favorite";
+    deleteBtn.onclick = () => {
+      const updated = getShortcuts();
+      updated.splice(i, 1);
+      saveShortcuts(updated);
+      renderShortcutManageList();
+    };
+
+    actions.appendChild(upBtn);
+    actions.appendChild(downBtn);
+    actions.appendChild(copyBtn);
+    actions.appendChild(deleteBtn);
+    row.appendChild(info);
+    row.appendChild(actions);
+    list.appendChild(row);
+  });
+}
+
+function addShortcutFromForm() {
+  const error = document.getElementById("shortcut-error");
+  error.textContent = "";
+
+  let shortcut;
+  try {
+    shortcut = GA4ShortcutUtils.normalizeShortcut({
+      label: document.getElementById("shortcut-label").value,
+      url: document.getElementById("shortcut-url").value
+    });
+  } catch (err) {
+    error.textContent = err.message;
+    return;
+  }
+
+  const shortcuts = getShortcuts();
+  if (GA4ShortcutUtils.hasDuplicateShortcut(shortcuts, shortcut)) {
+    error.textContent = "That favorite already exists.";
+    return;
+  }
+
+  shortcuts.push(shortcut);
+  saveShortcuts(shortcuts);
+  resetShortcutForm();
+  renderShortcutManageList();
+}
+
 // --- Export / Import ---
 
 function exportProperties() {
-  const json = JSON.stringify(getProperties(), null, 2);
+  const json = JSON.stringify({
+    version: 2,
+    properties: getProperties(),
+    shortcuts: getShortcuts()
+  }, null, 2);
   navigator.clipboard.writeText(json).then(() => {
     const btn = document.getElementById("btn-export");
     const orig = btn.textContent;
@@ -375,16 +601,34 @@ function importProperties() {
     return;
   }
 
-  if (!Array.isArray(parsed) || !parsed.every(p => p.label && p.id)) {
-    error.textContent = 'Expected [{label, id}, ...] format.';
+  const properties = Array.isArray(parsed) ? parsed : parsed.properties;
+  const rawShortcuts = Array.isArray(parsed) ? [] : (parsed.shortcuts || []);
+
+  if (!Array.isArray(properties) || !properties.every(p => p.label && p.id)) {
+    error.textContent = 'Expected {properties, shortcuts} or [{label, id}, ...] format.';
     return;
   }
 
-  saveProperties(parsed);
+  if (!Array.isArray(rawShortcuts)) {
+    error.textContent = "Shortcut data is invalid.";
+    return;
+  }
+
+  let shortcuts;
+  try {
+    shortcuts = rawShortcuts.map(s => GA4ShortcutUtils.normalizeStoredShortcut(s));
+  } catch {
+    error.textContent = "Shortcut data is invalid.";
+    return;
+  }
+
+  saveProperties(properties);
+  saveShortcuts(shortcuts);
   saveSelectedIndex(0);
   input.value = "";
   document.getElementById("import-row").style.display = "none";
   renderManageList();
+  renderShortcutManageList();
 }
 
 // --- Init ---
@@ -422,6 +666,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   document.getElementById("btn-export").onclick = exportProperties;
+  document.getElementById("btn-shortcut-save").onclick = addShortcutFromForm;
 
   document.getElementById("btn-import-toggle").onclick = () => {
     const row = document.getElementById("import-row");

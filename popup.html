@@ -145,6 +145,30 @@
       margin: 10px 0 5px;
     }
 
+    .section-label.with-action {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-action {
+      background: none;
+      border: none;
+      color: #4285f4;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: none;
+      letter-spacing: 0;
+      padding: 0;
+    }
+
+    .shortcut-meta {
+      font-size: 10px;
+      color: #9aa0a6;
+      margin-top: 1px;
+    }
+
     .btn {
       display: flex;
       align-items: center;
@@ -206,6 +230,20 @@
 
     .field input:focus { outline: none; border-color: #4285f4; }
 
+    .field textarea {
+      width: 100%;
+      height: 58px;
+      font-size: 11px;
+      font-family: monospace;
+      padding: 7px 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      color: #202124;
+      resize: none;
+    }
+
+    .field textarea:focus { outline: none; border-color: #4285f4; }
+
     .field .hint {
       font-size: 10px;
       color: #9aa0a6;
@@ -245,7 +283,8 @@
 
     .btn-secondary:hover { background: #f1f3f4; }
 
-    #add-error {
+    #add-error,
+    #shortcut-error {
       font-size: 11px;
       color: #d93025;
       margin-top: 8px;
@@ -383,6 +422,20 @@
     .manage-footer {
       margin-top: 12px;
     }
+
+    .shortcut-panel {
+      margin: 12px 0 14px;
+      padding: 10px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+    }
+
+    .shortcut-panel h3 {
+      font-size: 12px;
+      color: #202124;
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
@@ -403,6 +456,7 @@
       <div id="date-pills"></div>
     </div>
 
+    <div id="shortcut-list"></div>
     <div id="report-list"></div>
   </div>
 
@@ -439,6 +493,27 @@
 
     <div id="manage-list"></div>
 
+    <div class="shortcut-panel">
+      <h3>Favorite Shortcuts</h3>
+
+      <div class="field">
+        <label for="shortcut-label">Shortcut name</label>
+        <input type="text" id="shortcut-label" placeholder="e.g. Landing pages" />
+      </div>
+
+      <div class="field">
+        <label for="shortcut-url">GA4 report URL</label>
+        <textarea id="shortcut-url" placeholder="https://analytics.google.com/analytics/web/#/..."></textarea>
+        <div class="hint">Paste the GA4 report URL you want to save as a favorite</div>
+      </div>
+
+      <div id="shortcut-error"></div>
+
+      <button class="btn-primary" id="btn-shortcut-save" style="width:100%">Add Favorite</button>
+    </div>
+
+    <div id="shortcut-manage-list"></div>
+
     <div class="io-row">
       <button class="btn-sm" id="btn-export">📤 Export JSON</button>
       <button class="btn-sm" id="btn-import-toggle">📥 Import JSON</button>
@@ -455,6 +530,7 @@
     </div>
   </div>
 
+  <script src="shortcut-utils.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
