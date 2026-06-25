@@ -1,11 +1,10 @@
-const BASE = "https://analytics.google.com/analytics/web/#/";
 const GA4_API = "https://analyticsdata.googleapis.com/v1beta/properties/";
 
 const REPORTS = [
   {
     section: "Quick Access",
     items: [
-      { icon: "🟢", title: "Realtime", desc: "Who's on your site right now", path: "/reports/realtime?params=_u..nav%3Dmaui" },
+      { icon: "🟢", title: "Realtime", desc: "Who's on your site right now", path: "/realtime/overview?params=_u..nav%3Dmaui&collectionId=business-objectives" },
       { icon: "🏠", title: "Home", desc: "Your overview dashboard", path: "/reports/intelligenthome?params=_u..nav%3Dmaui&collectionId=business-objectives" },
       { icon: "📋", title: "Reports Snapshot", desc: "Quick summary of everything", path: "/reports/reportinghub?params=_u..nav%3Dmaui&collectionId=business-objectives" }
     ]
@@ -15,7 +14,7 @@ const REPORTS = [
     items: [
       { icon: "👥", title: "WHO visited", desc: "Countries, cities, languages", path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=user&ruid=user-demographics-overview,user,demographics&r=user-demographics-overview" },
       { icon: "🗺️", title: "HOW they found you", desc: "Google, direct, social, referral", path: "/reports/dashboard?params=_u..nav%3Dmaui%26_r.3..selmet%3D%5B%22conversions%22%5D&collectionId=business-objectives&ruid=business-objectives-generate-leads-overview,business-objectives,generate-leads&r=business-objectives-generate-leads-overview" },
-      { icon: "📄", title: "WHAT they looked at", desc: "Pages and screens visited", path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,raise-brand-awareness&r=all-pages-and-screens" },
+      { icon: "📄", title: "WHAT they looked at", desc: "Pages and screens visited", path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens" },
       { icon: "⏱️", title: "Engagement", desc: "Session duration, bounce rate", path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=lifecycle&ruid=life-cycle-engagement-overview,lifecycle,engagement&r=life-cycle-engagement-overview" }
     ]
   }
@@ -40,26 +39,8 @@ function saveShortcuts(s)   { localStorage.setItem("ga4_shortcuts", JSON.stringi
 function getRecentReports() { return JSON.parse(localStorage.getItem("ga4_recent_reports") || "[]"); }
 function saveRecentReports(r) { localStorage.setItem("ga4_recent_reports", JSON.stringify(r)); }
 
-// --- Links ---
-
-function dateRangeToParams(range) {
-  const days = { last7days: 6, last28days: 27, last90days: 89 };
-  const n = days[range];
-  if (n === undefined) return null;
-  const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-  const end = new Date();
-  const start = new Date();
-  start.setDate(end.getDate() - n);
-  return `&_u.date00=${fmt(start)}&_u.date01=${fmt(end)}`;
-}
-
 function buildHref(propertyId, path, dateRange) {
-  if (!propertyId) return "#";
-  const url = BASE + propertyId + path;
-  if (!dateRange) return url;
-  const params = dateRangeToParams(dateRange);
-  if (!params) return url;
-  return url.replace(/(params=[^&]*)/, `$1${encodeURIComponent(params)}`);
+  return GA4ShortcutUtils.buildGa4Href(propertyId, path, dateRange);
 }
 
 function updateLinks(propertyId) {

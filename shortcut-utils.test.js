@@ -3,6 +3,8 @@ const assert = require("node:assert/strict");
 
 const {
   parseGa4ReportUrl,
+  normalizePropertyId,
+  buildGa4Href,
   normalizeShortcut,
   normalizeStoredShortcut,
   hasDuplicateShortcut,
@@ -11,7 +13,7 @@ const {
   buildDashboardMetrics
 } = require("./shortcut-utils");
 
-test("parseGa4ReportUrl extracts property id and report path from a GA4 URL", () => {
+test("parseGa4ReportUrl extracts the GA4 route id and report path from a GA4 URL", () => {
   const parsed = parseGa4ReportUrl(
     "https://analytics.google.com/analytics/web/#/a356198589p490540007/reports/realtime?params=_u..nav%3Dmaui"
   );
@@ -20,6 +22,33 @@ test("parseGa4ReportUrl extracts property id and report path from a GA4 URL", ()
     id: "a356198589p490540007",
     path: "/reports/realtime?params=_u..nav%3Dmaui"
   });
+});
+
+test("parseGa4ReportUrl accepts GA4 URLs that use only the property route id", () => {
+  const parsed = parseGa4ReportUrl(
+    "https://analytics.google.com/analytics/web/#/p490540007/reports/reportinghub"
+  );
+
+  assert.deepEqual(parsed, {
+    id: "p490540007",
+    path: "/reports/reportinghub"
+  });
+});
+
+test("normalizePropertyId preserves copied GA4 account-property route ids", () => {
+  assert.equal(normalizePropertyId("a356198589p490540007"), "a356198589p490540007");
+  assert.equal(normalizePropertyId(" p490540007 "), "p490540007");
+});
+
+test("buildGa4Href preserves copied GA4 account-property route ids", () => {
+  const href = buildGa4Href(
+    "a356198589p490540007",
+    "/reports/realtime?params=_u..nav%3Dmaui",
+    "last28days",
+    new Date("2026-06-25T12:00:00")
+  );
+
+  assert.match(href, /#\/a356198589p490540007\/reports\/realtime/);
 });
 
 test("parseGa4ReportUrl rejects non-GA4 URLs", () => {
