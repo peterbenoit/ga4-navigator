@@ -73,11 +73,27 @@
     });
   }
 
+  function addRecentReport(existing, report, limit = 5) {
+    const item = {
+      label: String(report?.label || "").trim(),
+      propertyId: String(report?.propertyId || "").trim(),
+      path: String(report?.path || "").trim(),
+      openedAt: String(report?.openedAt || new Date().toISOString())
+    };
+
+    const filtered = existing.filter(recent => {
+      return recent.propertyId !== item.propertyId || recent.path !== item.path;
+    });
+
+    return [item, ...filtered].slice(0, limit);
+  }
+
   const api = {
     parseGa4ReportUrl,
     normalizeShortcut,
     normalizeStoredShortcut,
-    hasDuplicateShortcut
+    hasDuplicateShortcut,
+    addRecentReport
   };
 
   if (typeof module !== "undefined" && module.exports) {

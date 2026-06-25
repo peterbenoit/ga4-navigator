@@ -5,7 +5,8 @@ const {
   parseGa4ReportUrl,
   normalizeShortcut,
   normalizeStoredShortcut,
-  hasDuplicateShortcut
+  hasDuplicateShortcut,
+  addRecentReport
 } = require("./shortcut-utils");
 
 test("parseGa4ReportUrl extracts property id and report path from a GA4 URL", () => {
@@ -101,4 +102,71 @@ test("normalizeStoredShortcut rejects invalid imported shortcut paths", () => {
     }),
     /path/
   );
+});
+
+test("addRecentReport adds a newest-first item with openedAt", () => {
+  const recents = addRecentReport([], {
+    label: "Realtime",
+    propertyId: "a356198589p490540007",
+    path: "/reports/realtime",
+    openedAt: "2026-06-25T12:00:00.000Z"
+  });
+
+  assert.deepEqual(recents, [
+    {
+      label: "Realtime",
+      propertyId: "a356198589p490540007",
+      path: "/reports/realtime",
+      openedAt: "2026-06-25T12:00:00.000Z"
+    }
+  ]);
+});
+
+test("addRecentReport moves duplicate reports to the top", () => {
+  const existing = [
+    {
+      label: "Pages",
+      propertyId: "a356198589p490540007",
+      path: "/reports/pages",
+      openedAt: "2026-06-25T11:00:00.000Z"
+    },
+    {
+      label: "Realtime",
+      propertyId: "a356198589p490540007",
+      path: "/reports/realtime",
+      openedAt: "2026-06-25T10:00:00.000Z"
+    }
+  ];
+
+  const recents = addRecentReport(existing, {
+    label: "Realtime",
+    propertyId: "a356198589p490540007",
+    path: "/reports/realtime",
+    openedAt: "2026-06-25T12:00:00.000Z"
+  });
+
+  assert.equal(recents.length, 2);
+  assert.equal(recents[0].label, "Realtime");
+  assert.equal(recents[0].openedAt, "2026-06-25T12:00:00.000Z");
+  assert.equal(recents[1].label, "Pages");
+});
+
+test("addRecentReport caps recent reports at five items", () => {
+  const existing = Array.from({ length: 5 }, (_, index) => ({
+    label: `Report ${index}`,
+    propertyId: "a356198589p490540007",
+    path: `/reports/${index}`,
+    openedAt: `2026-06-25T0${index}:00:00.000Z`
+  }));
+
+  const recents = addRecentReport(existing, {
+    label: "Newest",
+    propertyId: "a356198589p490540007",
+    path: "/reports/newest",
+    openedAt: "2026-06-25T12:00:00.000Z"
+  });
+
+  assert.equal(recents.length, 5);
+  assert.equal(recents[0].label, "Newest");
+  assert.equal(recents.at(-1).label, "Report 3");
 });

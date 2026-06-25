@@ -37,6 +37,8 @@ function getDateRange()     { return localStorage.getItem("ga4_date_range") || "
 function saveDateRange(r)   { localStorage.setItem("ga4_date_range", r); }
 function getShortcuts()     { return JSON.parse(localStorage.getItem("ga4_shortcuts") || "[]"); }
 function saveShortcuts(s)   { localStorage.setItem("ga4_shortcuts", JSON.stringify(s)); }
+function getRecentReports() { return JSON.parse(localStorage.getItem("ga4_recent_reports") || "[]"); }
+function saveRecentReports(r) { localStorage.setItem("ga4_recent_reports", JSON.stringify(r)); }
 
 // --- Links ---
 
@@ -75,6 +77,26 @@ function updateLinks(propertyId) {
 function getPropertyLabel(propertyId) {
   const property = getProperties().find(p => p.id === propertyId);
   return property?.label || propertyId;
+}
+
+function formatOpenedAt(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+function recordRecentReport(report) {
+  const next = GA4ShortcutUtils.addRecentReport(getRecentReports(), {
+    ...report,
+    openedAt: new Date().toISOString()
+  });
+  saveRecentReports(next);
+  renderRecentReports();
 }
 
 function renderShortcuts() {
@@ -118,6 +140,13 @@ function renderShortcuts() {
     a.href = buildHref(shortcut.propertyId, shortcut.path, getDateRange());
     a.target = "_blank";
     a.rel = "noopener noreferrer";
+    a.onclick = () => {
+      recordRecentReport({
+        label: shortcut.label,
+        propertyId: shortcut.propertyId,
+        path: shortcut.path
+      });
+    };
     a.innerHTML = `
       <span class="btn-icon">⭐</span>
       <span class="btn-text">
@@ -128,6 +157,55 @@ function renderShortcuts() {
     a.querySelector(".btn-title").textContent = shortcut.label;
     a.querySelector(".btn-desc").textContent = getPropertyLabel(shortcut.propertyId);
     a.querySelector(".shortcut-meta").textContent = shortcut.path.replace(/^\//, "");
+    container.appendChild(a);
+  });
+}
+
+function renderRecentReports() {
+  const container = document.getElementById("recent-list");
+  container.innerHTML = "";
+
+  const recents = getRecentReports();
+  if (recents.length === 0) return;
+
+  const label = document.createElement("div");
+  label.className = "section-label with-action";
+  label.innerHTML = `<span>Recent</span>`;
+
+  const clearBtn = document.createElement("button");
+  clearBtn.className = "section-action";
+  clearBtn.type = "button";
+  clearBtn.textContent = "Clear";
+  clearBtn.onclick = () => {
+    saveRecentReports([]);
+    renderRecentReports();
+  };
+  label.appendChild(clearBtn);
+  container.appendChild(label);
+
+  recents.forEach(recent => {
+    const a = document.createElement("a");
+    a.className = "btn";
+    a.href = buildHref(recent.propertyId, recent.path, getDateRange());
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.onclick = () => {
+      recordRecentReport({
+        label: recent.label,
+        propertyId: recent.propertyId,
+        path: recent.path
+      });
+    };
+    a.innerHTML = `
+      <span class="btn-icon">↩</span>
+      <span class="btn-text">
+        <span class="btn-title"></span>
+        <span class="btn-desc"></span>
+        <span class="shortcut-meta"></span>
+      </span>`;
+    a.querySelector(".btn-title").textContent = recent.label;
+    a.querySelector(".btn-desc").textContent = getPropertyLabel(recent.propertyId);
+    a.querySelector(".shortcut-meta").textContent = formatOpenedAt(recent.openedAt);
     container.appendChild(a);
   });
 }
@@ -147,6 +225,16 @@ function renderReports() {
       a.href = "#";
       a.target = "_blank";
       a.rel = "noopener noreferrer";
+      a.onclick = () => {
+        const props = getProperties();
+        const property = props[getSelectedIndex()];
+        if (!property) return;
+        recordRecentReport({
+          label: item.title,
+          propertyId: property.id,
+          path: item.path
+        });
+      };
       a.innerHTML = `
         <span class="btn-icon">${item.icon}</span>
         <span class="btn-text">
@@ -173,6 +261,7 @@ function renderDatePills() {
       const props = getProperties();
       updateLinks(props[getSelectedIndex()]?.id || "");
       renderShortcuts();
+      renderRecentReports();
       renderDatePills();
     };
     container.appendChild(btn);
@@ -278,6 +367,7 @@ function showMain() {
     select.appendChild(Object.assign(document.createElement("option"), { textContent: "No properties — add one" }));
     updateLinks("");
     renderShortcuts();
+    renderRecentReports();
     document.getElementById("metrics-bar").textContent = "";
   } else {
     properties.forEach((p, i) => {
@@ -288,6 +378,7 @@ function showMain() {
       select.appendChild(opt);
     });
     renderShortcuts();
+    renderRecentReports();
     updateLinks(properties[idx]?.id || "");
     fetchMetrics(properties[idx]?.id || "");
 
