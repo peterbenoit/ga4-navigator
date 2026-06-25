@@ -5,11 +5,18 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html {
+      min-height: 100%;
+    }
+
     body {
-      width: 300px;
+      min-width: 320px;
+      max-width: 720px;
+      min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #f8f9fa;
-      padding: 16px;
+      padding: 20px;
+      overflow-y: auto;
     }
 
     h1 {
@@ -23,10 +30,11 @@
 
     /* --- PROPERTY BAR --- */
     .property-bar {
-      display: flex;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
       align-items: center;
       gap: 6px;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .property-bar label {
@@ -76,7 +84,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 12px;
+      gap: 12px;
+      margin-bottom: 8px;
     }
 
     #metrics-bar {
@@ -89,6 +98,45 @@
     }
 
     #metrics-bar strong { color: #202124; }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .metric-card {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 7px;
+      padding: 10px 9px;
+      min-width: 0;
+    }
+
+    .metric-card-value {
+      display: block;
+      color: #202124;
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.15;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .metric-card-label {
+      display: block;
+      color: #5f6368;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
 
     .metric-sep { color: #dadce0; }
 
@@ -174,8 +222,8 @@
       align-items: center;
       gap: 10px;
       width: 100%;
-      padding: 9px 12px;
-      margin-bottom: 5px;
+      padding: 11px 13px;
+      margin-bottom: 8px;
       background: white;
       border: 1px solid #e0e0e0;
       border-radius: 8px;
@@ -187,10 +235,10 @@
 
     .btn:hover { background: #e8f0fe; border-color: #4285f4; }
 
-    .btn-icon { font-size: 17px; flex-shrink: 0; }
+    .btn-icon { font-size: 19px; flex-shrink: 0; width: 26px; text-align: center; }
     .btn-text { display: flex; flex-direction: column; }
-    .btn-title { font-size: 13px; font-weight: 600; color: #202124; }
-    .btn-desc  { font-size: 11px; color: #5f6368; margin-top: 1px; }
+    .btn-title { font-size: 14px; font-weight: 650; color: #202124; }
+    .btn-desc  { font-size: 12px; color: #5f6368; margin-top: 2px; }
 
     /* --- SHARED FORM STYLES --- */
     #add-view, #manage-view { display: none; }
@@ -297,11 +345,11 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      padding: 8px 10px;
+      padding: 10px 12px;
       background: white;
       border: 1px solid #e0e0e0;
       border-radius: 8px;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
     .manage-info {
@@ -424,8 +472,8 @@
     }
 
     .shortcut-panel {
-      margin: 12px 0 14px;
-      padding: 10px;
+      margin: 14px 0 16px;
+      padding: 12px;
       background: white;
       border: 1px solid #e0e0e0;
       border-radius: 8px;
@@ -435,6 +483,16 @@
       font-size: 12px;
       color: #202124;
       margin-bottom: 8px;
+    }
+
+    @media (min-width: 520px) {
+      body {
+        padding: 24px;
+      }
+
+      .btn {
+        padding: 12px 14px;
+      }
     }
   </style>
 </head>
@@ -455,6 +513,8 @@
       <div id="metrics-bar"></div>
       <div id="date-pills"></div>
     </div>
+
+    <div id="dashboard-grid" class="dashboard-grid"></div>
 
     <div id="shortcut-list"></div>
     <div id="recent-list"></div>

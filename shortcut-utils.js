@@ -88,12 +88,42 @@
     return [item, ...filtered].slice(0, limit);
   }
 
+  function getApiDateRange(range) {
+    const ranges = {
+      last7days: { startDate: "7daysAgo", endDate: "today" },
+      last28days: { startDate: "28daysAgo", endDate: "today" },
+      last90days: { startDate: "90daysAgo", endDate: "today" }
+    };
+
+    return ranges[range] || ranges.last28days;
+  }
+
+  function formatMetricValue(value) {
+    return Number(value || 0).toLocaleString();
+  }
+
+  function getMetric(report, index) {
+    return report?.rows?.[0]?.metricValues?.[index]?.value || "0";
+  }
+
+  function buildDashboardMetrics(report, realtime) {
+    return [
+      { label: "Sessions", value: formatMetricValue(getMetric(report, 0)) },
+      { label: "Users", value: formatMetricValue(getMetric(report, 1)) },
+      { label: "Views", value: formatMetricValue(getMetric(report, 2)) },
+      { label: "Events", value: formatMetricValue(getMetric(report, 3)) },
+      { label: "Live", value: formatMetricValue(getMetric(realtime, 0)) }
+    ];
+  }
+
   const api = {
     parseGa4ReportUrl,
     normalizeShortcut,
     normalizeStoredShortcut,
     hasDuplicateShortcut,
-    addRecentReport
+    addRecentReport,
+    getApiDateRange,
+    buildDashboardMetrics
   };
 
   if (typeof module !== "undefined" && module.exports) {

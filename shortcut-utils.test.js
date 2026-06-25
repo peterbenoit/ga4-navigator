@@ -6,7 +6,9 @@ const {
   normalizeShortcut,
   normalizeStoredShortcut,
   hasDuplicateShortcut,
-  addRecentReport
+  addRecentReport,
+  getApiDateRange,
+  buildDashboardMetrics
 } = require("./shortcut-utils");
 
 test("parseGa4ReportUrl extracts property id and report path from a GA4 URL", () => {
@@ -169,4 +171,70 @@ test("addRecentReport caps recent reports at five items", () => {
   assert.equal(recents.length, 5);
   assert.equal(recents[0].label, "Newest");
   assert.equal(recents.at(-1).label, "Report 3");
+});
+
+test("getApiDateRange maps saved date range values to GA4 API ranges", () => {
+  assert.deepEqual(getApiDateRange("last7days"), {
+    startDate: "7daysAgo",
+    endDate: "today"
+  });
+  assert.deepEqual(getApiDateRange("last28days"), {
+    startDate: "28daysAgo",
+    endDate: "today"
+  });
+  assert.deepEqual(getApiDateRange("last90days"), {
+    startDate: "90daysAgo",
+    endDate: "today"
+  });
+});
+
+test("getApiDateRange falls back to 28 days for unknown ranges", () => {
+  assert.deepEqual(getApiDateRange("tomorrowish"), {
+    startDate: "28daysAgo",
+    endDate: "today"
+  });
+});
+
+test("buildDashboardMetrics converts GA4 report and realtime responses to display cards", () => {
+  const metrics = buildDashboardMetrics(
+    {
+      rows: [
+        {
+          metricValues: [
+            { value: "1234" },
+            { value: "987" },
+            { value: "4567" },
+            { value: "321" }
+          ]
+        }
+      ]
+    },
+    {
+      rows: [
+        {
+          metricValues: [{ value: "12" }]
+        }
+      ]
+    }
+  );
+
+  assert.deepEqual(metrics, [
+    { label: "Sessions", value: "1,234" },
+    { label: "Users", value: "987" },
+    { label: "Views", value: "4,567" },
+    { label: "Events", value: "321" },
+    { label: "Live", value: "12" }
+  ]);
+});
+
+test("buildDashboardMetrics uses zeroes for missing API rows", () => {
+  const metrics = buildDashboardMetrics({}, {});
+
+  assert.deepEqual(metrics, [
+    { label: "Sessions", value: "0" },
+    { label: "Users", value: "0" },
+    { label: "Views", value: "0" },
+    { label: "Events", value: "0" },
+    { label: "Live", value: "0" }
+  ]);
 });

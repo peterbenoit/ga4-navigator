@@ -262,6 +262,7 @@ function renderDatePills() {
       updateLinks(props[getSelectedIndex()]?.id || "");
       renderShortcuts();
       renderRecentReports();
+      fetchMetrics(props[getSelectedIndex()]?.id || "");
       renderDatePills();
     };
     container.appendChild(btn);
@@ -277,6 +278,7 @@ function getNumericId(id) {
 
 async function fetchMetrics(propertyId) {
   const el = document.getElementById("metrics-bar");
+  clearDashboard();
   if (!propertyId) { el.textContent = ""; return; }
 
   const numericId = getNumericId(propertyId);
@@ -297,32 +299,73 @@ async function fetchMetrics(propertyId) {
     });
   });
 
+  let token;
   try {
-    const token = await getToken(false);
-    await loadMetrics(el, numericId, token);
+    token = await getToken(false);
   } catch {
     el.innerHTML = `<button class="metric-connect" id="btn-connect">Connect Google →</button>`;
     document.getElementById("btn-connect")?.addEventListener("click", async () => {
+      let interactiveToken;
       try {
-        const token = await getToken(true);
-        await loadMetrics(el, numericId, token);
-      } catch (err) {
+        interactiveToken = await getToken(true);
+      } catch {
         el.innerHTML = `<span class="metric-hint">Auth failed</span>`;
+        return;
+      }
+
+      try {
+        await loadMetrics(el, numericId, interactiveToken, getDateRange());
+      } catch {
+        clearDashboard();
+        el.innerHTML = `<span class="metric-hint">Metrics unavailable</span>`;
       }
     });
+    return;
+  }
+
+  try {
+    await loadMetrics(el, numericId, token, getDateRange());
+  } catch {
+    clearDashboard();
+    el.innerHTML = `<span class="metric-hint">Metrics unavailable</span>`;
   }
 }
 
-async function loadMetrics(el, numericId, token) {
+function clearDashboard() {
+  document.getElementById("dashboard-grid").innerHTML = "";
+}
+
+function renderDashboard(metrics) {
+  const grid = document.getElementById("dashboard-grid");
+  grid.innerHTML = "";
+  metrics.forEach(metric => {
+    const card = document.createElement("div");
+    card.className = "metric-card";
+    card.innerHTML = `
+      <span class="metric-card-value"></span>
+      <span class="metric-card-label"></span>`;
+    card.querySelector(".metric-card-value").textContent = metric.value;
+    card.querySelector(".metric-card-label").textContent = metric.label;
+    grid.appendChild(card);
+  });
+}
+
+async function loadMetrics(el, numericId, token, dateRange) {
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const apiDateRange = GA4ShortcutUtils.getApiDateRange(dateRange);
 
   const [reportRes, realtimeRes] = await Promise.all([
     fetch(`${GA4_API}${numericId}:runReport`, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        dateRanges: [{ startDate: "today", endDate: "today" }],
-        metrics: [{ name: "sessions" }]
+        dateRanges: [apiDateRange],
+        metrics: [
+          { name: "sessions" },
+          { name: "totalUsers" },
+          { name: "screenPageViews" },
+          { name: "eventCount" }
+        ]
       })
     }),
     fetch(`${GA4_API}${numericId}:runRealtimeReport`, {
@@ -336,14 +379,10 @@ async function loadMetrics(el, numericId, token) {
   const realtime = await realtimeRes.json();
 
   if (!reportRes.ok) throw new Error(report.error?.message || "API error");
+  if (!realtimeRes.ok) throw new Error(realtime.error?.message || "Realtime API error");
 
-  const sessions = Number(report.rows?.[0]?.metricValues?.[0]?.value ?? 0).toLocaleString();
-  const live     = realtime.rows?.[0]?.metricValues?.[0]?.value ?? "0";
-
-  el.innerHTML = `
-    <span class="metric-item">Today: <strong>${sessions}</strong></span>
-    <span class="metric-sep">·</span>
-    <span class="metric-item">Live: <strong>${live}</strong></span>`;
+  renderDashboard(GA4ShortcutUtils.buildDashboardMetrics(report, realtime));
+  el.innerHTML = `<span class="metric-hint">Updated just now</span>`;
 }
 
 // --- Views ---
@@ -369,6 +408,7 @@ function showMain() {
     renderShortcuts();
     renderRecentReports();
     document.getElementById("metrics-bar").textContent = "";
+    clearDashboard();
   } else {
     properties.forEach((p, i) => {
       const opt = document.createElement("option");
