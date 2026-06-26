@@ -7,6 +7,7 @@ const {
   buildGa4Href,
   normalizeShortcut,
   normalizeStoredShortcut,
+  normalizeStoredProperties,
   hasDuplicateShortcut,
   addRecentReport,
   getApiDateRange,
@@ -132,6 +133,51 @@ test("normalizeStoredShortcut rejects invalid imported shortcut paths", () => {
       path: "reports/pages"
     }),
     /path/
+  );
+});
+
+test("normalizeStoredProperties trims imported property fields and removes extra data", () => {
+  const properties = normalizeStoredProperties([
+    {
+      label: "  Personal site  ",
+      id: " a356198589p490540007 ",
+      ignored: true
+    }
+  ]);
+
+  assert.deepEqual(properties, [
+    {
+      label: "Personal site",
+      id: "a356198589p490540007"
+    }
+  ]);
+});
+
+test("normalizeStoredProperties rejects invalid imported property ids", () => {
+  assert.throws(
+    () => normalizeStoredProperties([
+      {
+        label: "Bad",
+        id: "490540007"
+      }
+    ]),
+    /property id/
+  );
+});
+
+test("normalizeStoredProperties rejects duplicate imported property ids", () => {
+  assert.throws(
+    () => normalizeStoredProperties([
+      {
+        label: "Personal",
+        id: "a356198589p490540007"
+      },
+      {
+        label: "Duplicate personal",
+        id: " a356198589p490540007 "
+      }
+    ]),
+    /Duplicate/
   );
 });
 

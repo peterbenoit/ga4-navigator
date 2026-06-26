@@ -97,6 +97,39 @@
     return { label, propertyId, path };
   }
 
+  function normalizeStoredProperty(input) {
+    const label = String(input?.label || "").trim();
+    let id;
+
+    if (!label) {
+      throw new Error("Property label is required.");
+    }
+
+    try {
+      id = normalizePropertyId(input?.id);
+    } catch {
+      throw new Error("Imported property id is invalid.");
+    }
+
+    return { label, id };
+  }
+
+  function normalizeStoredProperties(input) {
+    if (!Array.isArray(input)) {
+      throw new Error("Property data is invalid.");
+    }
+
+    const seenIds = new Set();
+    return input.map(property => {
+      const normalized = normalizeStoredProperty(property);
+      if (seenIds.has(normalized.id)) {
+        throw new Error("Duplicate property id.");
+      }
+      seenIds.add(normalized.id);
+      return normalized;
+    });
+  }
+
   function hasDuplicateShortcut(shortcuts, candidate, ignoreIndex) {
     return shortcuts.some((shortcut, index) => {
       if (index === ignoreIndex) return false;
@@ -154,6 +187,8 @@
     buildGa4Href,
     normalizeShortcut,
     normalizeStoredShortcut,
+    normalizeStoredProperty,
+    normalizeStoredProperties,
     hasDuplicateShortcut,
     addRecentReport,
     getApiDateRange,

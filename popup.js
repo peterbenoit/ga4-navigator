@@ -776,10 +776,10 @@ function importProperties() {
     return;
   }
 
-  const properties = Array.isArray(parsed) ? parsed : parsed.properties;
+  const rawProperties = Array.isArray(parsed) ? parsed : parsed.properties;
   const rawShortcuts = Array.isArray(parsed) ? [] : (parsed.shortcuts || []);
 
-  if (!Array.isArray(properties) || !properties.every(p => p.label && p.id)) {
+  if (!Array.isArray(rawProperties)) {
     error.textContent = 'Expected {properties, shortcuts} or [{label, id}, ...] format.';
     return;
   }
@@ -789,11 +789,13 @@ function importProperties() {
     return;
   }
 
+  let properties;
   let shortcuts;
   try {
+    properties = GA4ShortcutUtils.normalizeStoredProperties(rawProperties);
     shortcuts = rawShortcuts.map(s => GA4ShortcutUtils.normalizeStoredShortcut(s));
   } catch {
-    error.textContent = "Shortcut data is invalid.";
+    error.textContent = "Import data is invalid.";
     return;
   }
 
