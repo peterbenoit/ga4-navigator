@@ -785,11 +785,25 @@ function renderShortcutManageList() {
     deleteBtn.className = "btn-icon-sm";
     deleteBtn.textContent = "🗑️";
     deleteBtn.title = "Delete favorite";
+    let confirming = false;
+    let timer = null;
     deleteBtn.onclick = () => {
-      const updated = getShortcuts();
-      updated.splice(i, 1);
-      saveShortcuts(updated);
-      renderShortcutManageList();
+      if (!confirming) {
+        confirming = true;
+        deleteBtn.textContent = "Sure?";
+        deleteBtn.classList.add("btn-danger");
+        timer = setTimeout(() => {
+          confirming = false;
+          deleteBtn.textContent = "🗑️";
+          deleteBtn.classList.remove("btn-danger");
+        }, 2500);
+      } else {
+        clearTimeout(timer);
+        const updated = getShortcuts();
+        updated.splice(i, 1);
+        saveShortcuts(updated);
+        renderShortcutManageList();
+      }
     };
 
     actions.appendChild(upBtn);
