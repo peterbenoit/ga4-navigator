@@ -20,47 +20,52 @@
     </header>
 
     <div class="property-bar">
-      <label for="propertySelect">Property:</label>
+      <label for="propertySelect" class="visually-hidden">Property</label>
       <select id="propertySelect"></select>
     </div>
 
-    <div class="controls-row">
-      <div id="metrics-bar"></div>
-      <div id="date-pills"></div>
-    </div>
+    <nav class="tab-bar" role="tablist" aria-label="Main navigation">
+      <button class="tab active" role="tab" aria-selected="true"  aria-controls="tab-dashboard"  data-tab="dashboard">Dashboard</button>
+      <button class="tab"        role="tab" aria-selected="false" aria-controls="tab-reports"    data-tab="reports">Reports</button>
+      <button class="tab"        role="tab" aria-selected="false" aria-controls="tab-favorites"  data-tab="favorites">Favorites</button>
+    </nav>
 
-    <div id="dashboard-grid" class="dashboard-grid"></div>
-
-    <section id="top-insights" class="top-insights" aria-labelledby="top-insights-heading">
-      <div class="top-insights-header">
-        <h2 id="top-insights-heading">Top Insights</h2>
-        <div id="insight-tabs" class="insight-tabs" role="group" aria-label="Insight type"></div>
+    <!-- TAB: DASHBOARD -->
+    <div id="tab-dashboard" class="tab-panel active" role="tabpanel" aria-labelledby="tab-dashboard">
+      <div class="controls-row">
+        <div id="metrics-bar"></div>
+        <div id="date-pills"></div>
       </div>
-      <div id="insight-status" class="insight-status" role="status" aria-live="polite"></div>
-      <div id="insight-list" class="insight-list"></div>
-    </section>
 
-    <section id="health-check" class="health-check" aria-labelledby="health-check-heading">
-      <div class="health-check-header">
-        <div>
-          <h2 id="health-check-heading">Health Check</h2>
-          <div id="health-status" role="status" aria-live="polite"></div>
+      <div id="dashboard-grid" class="dashboard-grid"></div>
+
+      <section id="top-insights" class="top-insights" aria-labelledby="top-insights-heading">
+        <div class="top-insights-header">
+          <h2 id="top-insights-heading">Top Insights</h2>
+          <div id="insight-tabs" class="insight-tabs" role="group" aria-label="Insight type"></div>
         </div>
-        <button class="health-run" id="btn-health-run" type="button">Run Check</button>
-      </div>
-      <div id="health-results" class="health-results"></div>
-    </section>
+        <div id="insight-status" class="insight-status" role="status" aria-live="polite"></div>
+        <div id="insight-list" class="insight-list"></div>
+      </section>
 
-    <div id="empty-state" class="empty-state">
-      <div class="empty-icon">📊</div>
-      <h2>No properties yet</h2>
-      <p>Add your first GA4 property to see metrics and navigate your reports.</p>
-      <button class="btn-primary" id="btn-empty-add" type="button">Add Property</button>
+      <div id="empty-state" class="empty-state">
+        <div class="empty-icon">📊</div>
+        <h2>No properties yet</h2>
+        <p>Add your first GA4 property to see metrics and navigate your reports.</p>
+        <button class="btn-primary" id="btn-empty-add" type="button">Add Property</button>
+      </div>
     </div>
 
-    <div id="shortcut-list"></div>
-    <div id="recent-list"></div>
-    <div id="report-list"></div>
+    <!-- TAB: REPORTS -->
+    <div id="tab-reports" class="tab-panel" role="tabpanel" aria-labelledby="tab-reports">
+      <div id="report-list"></div>
+    </div>
+
+    <!-- TAB: FAVORITES -->
+    <div id="tab-favorites" class="tab-panel" role="tabpanel" aria-labelledby="tab-favorites">
+      <div id="shortcut-list"></div>
+      <div id="recent-list"></div>
+    </div>
   </div>
 
   <!-- ADD VIEW -->
@@ -146,5 +151,28 @@
 
   <script src="shortcut-utils.js"></script>
   <script src="popup.js"></script>
+  <script>
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+        document.querySelectorAll('.tab').forEach(b => {
+          b.classList.toggle('active', b === btn);
+          b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+        });
+        document.querySelectorAll('.tab-panel').forEach(p => {
+          p.classList.toggle('active', p.id === 'tab-' + target);
+        });
+        // Re-render lists when switching to their tab so content is always current
+        if (target === 'favorites' && typeof renderShortcuts === 'function') {
+          renderShortcuts();
+          renderRecentReports();
+        }
+        if (target === 'reports' && typeof renderReports === 'function') {
+          renderReports();
+        }
+      });
+    });
+  </script>
 </body>
 </html>
