@@ -48,6 +48,17 @@
         <div id="insight-list" class="insight-list"></div>
       </section>
 
+      <section id="health-check" class="health-check" aria-labelledby="health-check-heading">
+        <div class="health-check-header">
+          <div>
+            <h2 id="health-check-heading">Health Check</h2>
+            <div id="health-status" role="status" aria-live="polite"></div>
+          </div>
+          <button class="health-run" id="btn-health-run" type="button">Run Check</button>
+        </div>
+        <div id="health-results" class="health-results"></div>
+      </section>
+
       <div id="empty-state" class="empty-state">
         <div class="empty-icon">📊</div>
         <h2>No properties yet</h2>
@@ -151,28 +162,6 @@
 
   <script src="shortcut-utils.js"></script>
   <script src="popup.js"></script>
-  <script>
-    // Tab switching
-    document.querySelectorAll('.tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const target = btn.dataset.tab;
-        document.querySelectorAll('.tab').forEach(b => {
-          b.classList.toggle('active', b === btn);
-          b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
-        });
-        document.querySelectorAll('.tab-panel').forEach(p => {
-          p.classList.toggle('active', p.id === 'tab-' + target);
-        });
-        // Re-render lists when switching to their tab so content is always current
-        if (target === 'favorites' && typeof renderShortcuts === 'function') {
-          renderShortcuts();
-          renderRecentReports();
-        }
-        if (target === 'reports' && typeof renderReports === 'function') {
-          renderReports();
-        }
-      });
-    });
-  </script>
+  <script src="tabs.js"></script>
 </body>
 </html>
