@@ -8,13 +8,19 @@
 
   <!-- MAIN VIEW -->
   <div id="main-view">
-    <h1>📊 GA4 Navigator</h1>
+    <header class="app-header">
+      <div class="app-brand">
+        <span class="brand-mark">G4</span>
+        <span class="brand-name">Navigator</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-hdr" id="btn-manage" type="button" aria-label="Manage properties" title="Manage properties">⚙</button>
+        <button class="btn-hdr btn-hdr-primary" id="btn-add" type="button" aria-label="Add a property" title="Add a property">+ Add</button>
+      </div>
+    </header>
 
     <div class="property-bar">
-      <label for="propertySelect">Property:</label>
       <select id="propertySelect"></select>
-      <button class="btn-bar-icon" id="btn-manage" type="button" aria-label="Manage properties" title="Manage properties">⚙️</button>
-      <button class="btn-bar-icon primary" id="btn-add" type="button" aria-label="Add a property" title="Add a property">+</button>
     </div>
 
     <div class="controls-row">
@@ -23,17 +29,20 @@
     </div>
 
     <div id="dashboard-grid" class="dashboard-grid"></div>
+
     <section id="top-insights" class="top-insights" aria-labelledby="top-insights-heading">
       <div class="top-insights-header">
-        <h2 id="top-insights-heading">Top insights</h2>
+        <h2 id="top-insights-heading">Top Insights</h2>
         <div id="insight-tabs" class="insight-tabs" role="group" aria-label="Insight type"></div>
       </div>
       <div id="insight-status" class="insight-status" role="status" aria-live="polite"></div>
       <div id="insight-list" class="insight-list"></div>
     </section>
+
     <div id="empty-state" class="empty-state">
-      <h2>Add your first GA4 property</h2>
-      <p>Paste a GA4 URL once, then GA4 Navigator can build report links and load metrics for that property.</p>
+      <div class="empty-icon">📊</div>
+      <h2>No properties yet</h2>
+      <p>Add your first GA4 property to see metrics and navigate your reports.</p>
       <button class="btn-primary" id="btn-empty-add" type="button">Add Property</button>
     </div>
 
@@ -42,66 +51,84 @@
     <div id="report-list"></div>
   </div>
 
+  <!-- ADD VIEW -->
   <div id="add-view">
-    <h1>📊 GA4 Navigator</h1>
-    <h2>Add a Property</h2>
-    <p>Give it a nickname, then paste any URL from that GA4 account — I'll find the ID automatically.</p>
+    <header class="app-header sub-header">
+      <button class="btn-back" id="btn-cancel" type="button">
+        <span aria-hidden="true">←</span> Back
+      </button>
+      <span class="sub-title">Add Property</span>
+    </header>
 
-    <div class="field">
-      <label for="prop-name">Nickname</label>
-      <input type="text" id="prop-name" placeholder="e.g. Work Site" />
-    </div>
+    <div class="view-body">
+      <p class="view-desc">Give it a nickname, then paste any URL from that GA4 account — the property ID is detected automatically.</p>
 
-    <div class="field">
-      <label for="prop-id">Paste any GA4 URL from that account</label>
-      <input type="text" id="prop-id" placeholder="https://analytics.google.com/..." />
-      <div class="hint">Copy the URL from your browser while you're in that GA4 account</div>
-    </div>
+      <div class="field">
+        <label for="prop-name">Nickname</label>
+        <input type="text" id="prop-name" placeholder="e.g. Work Site" autocomplete="off" />
+      </div>
 
-    <div id="add-error" role="status" aria-live="polite"></div>
+      <div class="field">
+        <label for="prop-id">Any GA4 URL from that account</label>
+        <input type="text" id="prop-id" placeholder="https://analytics.google.com/..." autocomplete="off" />
+        <div class="hint">Copy the URL from your browser while viewing that GA4 account</div>
+      </div>
 
-    <div class="btn-row">
-      <button class="btn-secondary" id="btn-cancel" type="button">Cancel</button>
-      <button class="btn-primary" id="btn-save" type="button">Save</button>
+      <div id="add-error" class="error-msg" role="status" aria-live="polite"></div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="btn-save" type="button">Save Property</button>
+      </div>
     </div>
   </div>
 
+  <!-- MANAGE VIEW -->
   <div id="manage-view">
-    <h1>📊 GA4 Navigator</h1>
-    <h2>Manage Properties</h2>
-    <p class="view-desc">Click a name to rename it. 📋 copies the property ID.</p>
+    <header class="app-header sub-header">
+      <button class="btn-back" id="btn-manage-done" type="button">
+        <span aria-hidden="true">←</span> Back
+      </button>
+      <span class="sub-title">Manage</span>
+    </header>
 
-    <div id="manage-list"></div>
-
-    <div class="shortcut-panel">
-      <h3>Favorite Shortcuts</h3>
-      <div class="field">
-        <label for="shortcut-label">Shortcut name</label>
-        <input type="text" id="shortcut-label" placeholder="e.g. Landing pages" />
+    <div class="view-body">
+      <div class="view-section">
+        <h3 class="view-section-title">Properties</h3>
+        <p class="view-section-desc">Click a name to rename it.</p>
+        <div id="manage-list"></div>
       </div>
-      <div class="field">
-        <label for="shortcut-url">GA4 report URL</label>
-        <textarea id="shortcut-url" placeholder="https://analytics.google.com/analytics/web/#/..."></textarea>
-        <div class="hint">Paste the GA4 report URL you want to save as a favorite</div>
+
+      <div class="view-section">
+        <h3 class="view-section-title">Add Favorite</h3>
+        <div class="shortcut-panel">
+          <div class="field">
+            <label for="shortcut-label">Name</label>
+            <input type="text" id="shortcut-label" placeholder="e.g. Landing pages" />
+          </div>
+          <div class="field">
+            <label for="shortcut-url">GA4 report URL</label>
+            <textarea id="shortcut-url" placeholder="https://analytics.google.com/analytics/web/#/..."></textarea>
+            <div class="hint">Paste the full GA4 report URL to save as a favorite</div>
+          </div>
+          <div id="shortcut-error" class="error-msg" role="status" aria-live="polite"></div>
+          <button class="btn-primary" id="btn-shortcut-save" type="button">Add Favorite</button>
+        </div>
       </div>
-      <div id="shortcut-error" role="status" aria-live="polite"></div>
-      <button class="btn-primary" id="btn-shortcut-save" type="button" style="width:100%">Add Favorite</button>
-    </div>
 
-    <div id="shortcut-manage-list"></div>
-    <div class="io-row">
-      <button class="btn-sm" id="btn-export" type="button">📤 Export JSON</button>
-      <button class="btn-sm" id="btn-import-toggle" type="button">📥 Import JSON</button>
-    </div>
+      <div id="shortcut-manage-list"></div>
 
-    <div id="import-row">
-      <textarea id="import-input" placeholder='[{"label":"Site Name","id":"a123p456"}]'></textarea>
-      <div id="import-error" role="status" aria-live="polite"></div>
-      <button class="btn-primary" id="btn-import-apply" type="button" style="width:100%">Apply Import</button>
-    </div>
-
-    <div class="manage-footer">
-      <button class="btn-primary" id="btn-manage-done" type="button" style="width:100%">Done</button>
+      <div class="view-section io-section">
+        <h3 class="view-section-title">Data</h3>
+        <div class="io-row">
+          <button class="btn-secondary" id="btn-export" type="button">Export JSON</button>
+          <button class="btn-secondary" id="btn-import-toggle" type="button">Import JSON</button>
+        </div>
+        <div id="import-row">
+          <textarea id="import-input" placeholder='[{"label":"Site Name","id":"a123p456"}]'></textarea>
+          <div id="import-error" class="error-msg" role="status" aria-live="polite"></div>
+          <button class="btn-primary" id="btn-import-apply" type="button">Apply Import</button>
+        </div>
+      </div>
     </div>
   </div>
 
