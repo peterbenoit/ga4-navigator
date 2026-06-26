@@ -20,6 +20,7 @@
     </header>
 
     <div class="property-bar">
+      <label for="propertySelect">Property:</label>
       <select id="propertySelect"></select>
     </div>
 
@@ -37,6 +38,17 @@
       </div>
       <div id="insight-status" class="insight-status" role="status" aria-live="polite"></div>
       <div id="insight-list" class="insight-list"></div>
+    </section>
+
+    <section id="health-check" class="health-check" aria-labelledby="health-check-heading">
+      <div class="health-check-header">
+        <div>
+          <h2 id="health-check-heading">Health Check</h2>
+          <div id="health-status" role="status" aria-live="polite"></div>
+        </div>
+        <button class="health-run" id="btn-health-run" type="button">Run Check</button>
+      </div>
+      <div id="health-results" class="health-results"></div>
     </section>
 
     <div id="empty-state" class="empty-state">
@@ -69,7 +81,7 @@
       </div>
 
       <div class="field">
-        <label for="prop-id">Any GA4 URL from that account</label>
+        <label for="prop-id">Paste any GA4 URL from that account</label>
         <input type="text" id="prop-id" placeholder="https://analytics.google.com/..." autocomplete="off" />
         <div class="hint">Copy the URL from your browser while viewing that GA4 account</div>
       </div>
