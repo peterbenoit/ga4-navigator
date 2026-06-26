@@ -11,9 +11,16 @@ function createElement(id) {
     innerHTML: "",
     textContent: "",
     children: [],
+    attributes: {},
     addEventListener() {},
     appendChild(child) {
       this.children.push(child);
+    },
+    setAttribute(name, value) {
+      this.attributes[name] = String(value);
+    },
+    getAttribute(name) {
+      return this.attributes[name];
     },
     querySelector(selector) {
       if (selector === ".metric-card-value") return this.valueEl;
@@ -122,6 +129,7 @@ test("fetchMetrics clears a rejected cached token and retries interactively once
   assert.deepEqual(fetchTokens, [
     "Bearer cached-token",
     "Bearer cached-token",
+    "Bearer interactive-token",
     "Bearer interactive-token",
     "Bearer interactive-token"
   ]);
@@ -312,4 +320,58 @@ test("fetchMetrics ignores stale silent-auth failures after a newer request rend
     ["30", "31", "32", "33", "34"]
   );
   assert.equal(context.document.getElementById("metrics-bar").innerHTML, "<span class=\"metric-hint\">Updated just now</span>");
+});
+
+test("fetchMetrics loads and renders top page insights", async () => {
+  const requests = [];
+
+  const context = loadPopup({
+    chrome: {
+      runtime: { lastError: null },
+      identity: {
+        getAuthToken({ interactive }, callback) {
+          assert.equal(interactive, false);
+          callback("cached-token");
+        },
+        removeCachedAuthToken() {
+          assert.fail("successful requests should not clear the cached token");
+        }
+      }
+    },
+    async fetch(url, options) {
+      requests.push(JSON.parse(options.body));
+      if (url.includes("runRealtimeReport")) {
+        return jsonResponse(200, {
+          rows: [{ metricValues: [{ value: "5" }] }]
+        });
+      }
+
+      if (requests.length === 3) {
+        return jsonResponse(200, {
+          rows: [
+            {
+              dimensionValues: [{ value: "Home" }, { value: "/" }],
+              metricValues: [{ value: "42" }]
+            }
+          ]
+        });
+      }
+
+      return jsonResponse(200, {
+        rows: [{ metricValues: [{ value: "1" }, { value: "2" }, { value: "3" }, { value: "4" }] }]
+      });
+    }
+  });
+
+  await context.fetchMetrics("a356198589p490540007");
+
+  assert.deepEqual(requests[2].dimensions, [
+    { name: "pageTitle" },
+    { name: "pagePath" }
+  ]);
+  assert.deepEqual(requests[2].metrics, [{ name: "screenPageViews" }]);
+
+  const row = context.document.getElementById("insight-list").children[0];
+  assert.equal(row.href, "https://analytics.google.com/analytics/web/#/a356198589p490540007/reports/explorer?params=_u..nav%3Dmaui%26_u.date00%3D20260530%26_u.date01%3D20260626&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens");
+  assert.deepEqual(row.children.map(child => child.textContent), ["Home", "/", "42", "Views"]);
 });

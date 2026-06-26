@@ -11,7 +11,9 @@ const {
   hasDuplicateShortcut,
   addRecentReport,
   getApiDateRange,
-  buildDashboardMetrics
+  buildDashboardMetrics,
+  getTopInsightConfig,
+  buildTopInsightRows
 } = require("./shortcut-utils");
 
 test("parseGa4ReportUrl extracts the GA4 route id and report path from a GA4 URL", () => {
@@ -312,4 +314,42 @@ test("buildDashboardMetrics uses zeroes for missing API rows", () => {
     { label: "Events", value: "0" },
     { label: "Live", value: "0" }
   ]);
+});
+
+test("getTopInsightConfig returns GA4 request settings for top pages", () => {
+  assert.deepEqual(getTopInsightConfig("pages"), {
+    label: "Pages",
+    dimension: "pageTitle",
+    secondaryDimension: "pagePath",
+    metric: "screenPageViews",
+    metricLabel: "Views",
+    path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens"
+  });
+});
+
+test("buildTopInsightRows converts GA4 rows to ranked display rows", () => {
+  const rows = buildTopInsightRows(
+    {
+      rows: [
+        {
+          dimensionValues: [{ value: "Home" }, { value: "/" }],
+          metricValues: [{ value: "1234" }]
+        },
+        {
+          dimensionValues: [{ value: "" }, { value: "/contact" }],
+          metricValues: [{ value: "45" }]
+        }
+      ]
+    },
+    getTopInsightConfig("pages")
+  );
+
+  assert.deepEqual(rows, [
+    { label: "Home", meta: "/", value: "1,234", metricLabel: "Views" },
+    { label: "/contact", meta: "", value: "45", metricLabel: "Views" }
+  ]);
+});
+
+test("buildTopInsightRows returns an empty list when GA4 has no rows", () => {
+  assert.deepEqual(buildTopInsightRows({}, getTopInsightConfig("sources")), []);
 });

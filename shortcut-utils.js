@@ -170,6 +170,56 @@
     return report?.rows?.[0]?.metricValues?.[index]?.value || "0";
   }
 
+  const TOP_INSIGHT_CONFIGS = {
+    pages: {
+      label: "Pages",
+      dimension: "pageTitle",
+      secondaryDimension: "pagePath",
+      metric: "screenPageViews",
+      metricLabel: "Views",
+      path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens"
+    },
+    sources: {
+      label: "Sources",
+      dimension: "sessionSourceMedium",
+      metric: "sessions",
+      metricLabel: "Sessions",
+      path: "/reports/dashboard?params=_u..nav%3Dmaui%26_r.3..selmet%3D%5B%22conversions%22%5D&collectionId=business-objectives&ruid=business-objectives-generate-leads-overview,business-objectives,generate-leads&r=business-objectives-generate-leads-overview"
+    },
+    campaigns: {
+      label: "Campaigns",
+      dimension: "sessionCampaignName",
+      metric: "sessions",
+      metricLabel: "Sessions",
+      path: "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui"
+    },
+    events: {
+      label: "Events",
+      dimension: "eventName",
+      metric: "eventCount",
+      metricLabel: "Events",
+      path: "/reports/events?params=_u..nav%3Dmaui"
+    }
+  };
+
+  function getTopInsightConfig(type) {
+    return TOP_INSIGHT_CONFIGS[type] || TOP_INSIGHT_CONFIGS.pages;
+  }
+
+  function buildTopInsightRows(report, config) {
+    return (report?.rows || []).map(row => {
+      const dimensions = row.dimensionValues || [];
+      const primary = String(dimensions[0]?.value || "").trim();
+      const secondary = String(dimensions[1]?.value || "").trim();
+      return {
+        label: primary || secondary || "(not set)",
+        meta: primary && secondary && primary !== secondary ? secondary : "",
+        value: formatMetricValue(row.metricValues?.[0]?.value || "0"),
+        metricLabel: config.metricLabel
+      };
+    });
+  }
+
   function buildDashboardMetrics(report, realtime) {
     return [
       { label: "Sessions", value: formatMetricValue(getMetric(report, 0)) },
@@ -192,7 +242,9 @@
     hasDuplicateShortcut,
     addRecentReport,
     getApiDateRange,
-    buildDashboardMetrics
+    buildDashboardMetrics,
+    getTopInsightConfig,
+    buildTopInsightRows
   };
 
   if (typeof module !== "undefined" && module.exports) {

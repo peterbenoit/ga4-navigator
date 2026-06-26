@@ -254,6 +254,122 @@ textarea {
   white-space: nowrap;
 }
 
+.top-insights {
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  margin: 0 0 32px;
+  padding: 20px;
+}
+
+.top-insights-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.top-insights h2 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.insight-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.insight-tab {
+  min-height: 34px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: #334155;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 750;
+  padding: 7px 10px;
+}
+
+.insight-tab.active {
+  background: var(--blue-soft);
+  border-color: #bfdbfe;
+  color: var(--blue-dark);
+}
+
+.insight-status {
+  color: var(--muted);
+  font-size: 14px;
+  min-height: 20px;
+}
+
+.insight-list {
+  display: grid;
+  gap: 8px;
+}
+
+.insight-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title value"
+    "meta metric";
+  column-gap: 16px;
+  min-height: 58px;
+  border-top: 1px solid var(--line-soft);
+  color: inherit;
+  padding: 12px 0;
+  text-decoration: none;
+}
+
+.insight-row:first-child {
+  border-top: 0;
+}
+
+.insight-row:hover .insight-row-title {
+  color: var(--blue);
+}
+
+.insight-row-title {
+  grid-area: title;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insight-row-meta {
+  grid-area: meta;
+  color: var(--muted-soft);
+  font-size: 12px;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insight-row-value {
+  grid-area: value;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.insight-row-metric {
+  grid-area: metric;
+  color: var(--muted-soft);
+  font-size: 12px;
+  margin-top: 3px;
+  text-align: right;
+}
+
 .section-label {
   color: var(--muted);
   font-size: 19px;
@@ -580,5 +696,14 @@ textarea {
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
+  }
+
+  .top-insights-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .insight-tabs {
+    justify-content: flex-start;
   }
 }

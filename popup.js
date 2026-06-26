@@ -26,7 +26,10 @@ const DATE_RANGES = [
   { label: "90d", value: "last90days" }
 ];
 
+const TOP_INSIGHT_TYPES = ["pages", "sources", "campaigns", "events"];
+
 let metricsRequestSequence = 0;
+let selectedTopInsightType = "pages";
 
 // --- Storage ---
 
@@ -338,6 +341,7 @@ async function fetchMetrics(propertyId) {
   const requestId = ++metricsRequestSequence;
   const el = document.getElementById("metrics-bar");
   clearDashboard();
+  clearTopInsights();
   if (!propertyId) { el.textContent = ""; return; }
 
   const numericId = getNumericId(propertyId);
@@ -386,6 +390,7 @@ async function fetchMetrics(propertyId) {
       try {
         if (!isCurrentMetricsRequest(requestId)) return;
         await loadMetrics(el, numericId, interactiveToken, getDateRange(), requestId);
+        await loadTopInsights(numericId, propertyId, interactiveToken, getDateRange(), requestId);
       } catch (err) {
         if (!isCurrentMetricsRequest(requestId)) return;
         clearDashboard();
@@ -397,6 +402,7 @@ async function fetchMetrics(propertyId) {
 
   try {
     await loadMetrics(el, numericId, token, getDateRange(), requestId);
+    await loadTopInsights(numericId, propertyId, token, getDateRange(), requestId);
   } catch (err) {
     if (!isCurrentMetricsRequest(requestId)) return;
 
@@ -407,6 +413,7 @@ async function fetchMetrics(propertyId) {
         const interactiveToken = await getToken(true);
         if (!isCurrentMetricsRequest(requestId)) return;
         await loadMetrics(el, numericId, interactiveToken, getDateRange(), requestId);
+        await loadTopInsights(numericId, propertyId, interactiveToken, getDateRange(), requestId);
         return;
       } catch (retryErr) {
         if (!isCurrentMetricsRequest(requestId)) return;
@@ -439,6 +446,12 @@ function getMetricsFailureMessage(err) {
 
 function clearDashboard() {
   document.getElementById("dashboard-grid").innerHTML = "";
+}
+
+function clearTopInsights() {
+  document.getElementById("insight-tabs").innerHTML = "";
+  document.getElementById("insight-list").innerHTML = "";
+  document.getElementById("insight-status").textContent = "";
 }
 
 function renderDashboard(metrics) {
@@ -504,6 +517,118 @@ async function loadMetrics(el, numericId, token, dateRange, requestId) {
   el.innerHTML = `<span class="metric-hint">Updated just now</span>`;
 }
 
+function renderTopInsightTabs() {
+  const tabs = document.getElementById("insight-tabs");
+  tabs.innerHTML = "";
+
+  TOP_INSIGHT_TYPES.forEach(type => {
+    const config = GA4ShortcutUtils.getTopInsightConfig(type);
+    const btn = document.createElement("button");
+    btn.className = "insight-tab" + (type === selectedTopInsightType ? " active" : "");
+    btn.type = "button";
+    btn.setAttribute("aria-pressed", type === selectedTopInsightType ? "true" : "false");
+    btn.textContent = config.label;
+    btn.onclick = () => {
+      selectedTopInsightType = type;
+      const property = getProperties()[getSelectedIndex()];
+      if (property) fetchMetrics(property.id);
+      else clearTopInsights();
+    };
+    tabs.appendChild(btn);
+  });
+}
+
+function setTopInsightsStatus(message) {
+  document.getElementById("insight-status").textContent = message;
+}
+
+function renderTopInsightRows(rows, propertyId, config) {
+  const list = document.getElementById("insight-list");
+  list.innerHTML = "";
+
+  if (rows.length === 0) {
+    setTopInsightsStatus(`No ${config.label.toLowerCase()} found for this date range.`);
+    return;
+  }
+
+  setTopInsightsStatus("");
+  rows.forEach(row => {
+    const a = document.createElement("a");
+    a.className = "insight-row";
+    a.href = buildHref(propertyId, config.path, getDateRange());
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.onclick = () => {
+      recordRecentReport({
+        label: config.label,
+        propertyId,
+        path: config.path
+      });
+    };
+
+    const title = document.createElement("span");
+    title.className = "insight-row-title";
+    title.textContent = row.label;
+
+    const meta = document.createElement("span");
+    meta.className = "insight-row-meta";
+    meta.textContent = row.meta;
+
+    const value = document.createElement("span");
+    value.className = "insight-row-value";
+    value.textContent = row.value;
+
+    const metric = document.createElement("span");
+    metric.className = "insight-row-metric";
+    metric.textContent = row.metricLabel;
+
+    a.appendChild(title);
+    a.appendChild(meta);
+    a.appendChild(value);
+    a.appendChild(metric);
+    list.appendChild(a);
+  });
+}
+
+async function loadTopInsights(numericId, propertyId, token, dateRange, requestId) {
+  if (!isCurrentMetricsRequest(requestId)) return;
+
+  renderTopInsightTabs();
+  setTopInsightsStatus("Loading insights...");
+
+  const config = GA4ShortcutUtils.getTopInsightConfig(selectedTopInsightType);
+  const dimensions = [{ name: config.dimension }];
+  if (config.secondaryDimension) {
+    dimensions.push({ name: config.secondaryDimension });
+  }
+
+  try {
+    const res = await fetch(`${GA4_API}${numericId}:runReport`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dateRanges: [GA4ShortcutUtils.getApiDateRange(dateRange)],
+        dimensions,
+        metrics: [{ name: config.metric }],
+        orderBys: [{ metric: { metricName: config.metric }, desc: true }],
+        limit: 5
+      })
+    });
+    const report = await res.json();
+
+    if (!res.ok) {
+      throw new Error(report.error?.message || "Insight API error");
+    }
+
+    if (!isCurrentMetricsRequest(requestId)) return;
+    renderTopInsightRows(GA4ShortcutUtils.buildTopInsightRows(report, config), propertyId, config);
+  } catch {
+    if (!isCurrentMetricsRequest(requestId)) return;
+    document.getElementById("insight-list").innerHTML = "";
+    setTopInsightsStatus("Top insights unavailable.");
+  }
+}
+
 // --- Views ---
 
 function showView(name) {
@@ -515,6 +640,7 @@ function showView(name) {
 function setMainEmptyState(isEmpty) {
   document.querySelector(".controls-row").style.display = isEmpty ? "none" : "flex";
   document.getElementById("dashboard-grid").style.display = isEmpty ? "none" : "grid";
+  document.getElementById("top-insights").style.display = isEmpty ? "none" : "block";
   document.getElementById("shortcut-list").style.display = isEmpty ? "none" : "block";
   document.getElementById("recent-list").style.display = isEmpty ? "none" : "block";
   document.getElementById("report-list").style.display = isEmpty ? "none" : "block";
