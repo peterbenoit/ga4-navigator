@@ -191,6 +191,35 @@ textarea {
   margin-bottom: 32px;
 }
 
+.empty-state {
+  display: none;
+  max-width: 520px;
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  margin: 18px 0 30px;
+  padding: 26px;
+}
+
+.empty-state h2 {
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.empty-state .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+}
+
 .metric-card {
   min-height: 128px;
   background: var(--panel);

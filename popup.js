@@ -30,16 +30,89 @@ let metricsRequestSequence = 0;
 
 // --- Storage ---
 
-function getProperties()    { return JSON.parse(localStorage.getItem("ga4_properties") || "[]"); }
-function saveProperties(p)  { localStorage.setItem("ga4_properties", JSON.stringify(p)); }
-function getSelectedIndex() { return parseInt(localStorage.getItem("ga4_selected") || "0"); }
-function saveSelectedIndex(i) { localStorage.setItem("ga4_selected", String(i)); }
-function getDateRange()     { return localStorage.getItem("ga4_date_range") || "last28days"; }
-function saveDateRange(r)   { localStorage.setItem("ga4_date_range", r); }
-function getShortcuts()     { return JSON.parse(localStorage.getItem("ga4_shortcuts") || "[]"); }
-function saveShortcuts(s)   { localStorage.setItem("ga4_shortcuts", JSON.stringify(s)); }
-function getRecentReports() { return JSON.parse(localStorage.getItem("ga4_recent_reports") || "[]"); }
-function saveRecentReports(r) { localStorage.setItem("ga4_recent_reports", JSON.stringify(r)); }
+const STORAGE_DEFAULTS = {
+  ga4_properties: [],
+  ga4_selected: 0,
+  ga4_date_range: "last28days",
+  ga4_shortcuts: [],
+  ga4_recent_reports: [],
+  ga4_storage_migrated: false
+};
+
+const STORAGE_KEYS = Object.keys(STORAGE_DEFAULTS);
+let storageState = { ...STORAGE_DEFAULTS };
+
+function hasChromeStorage() {
+  return typeof chrome !== "undefined" && chrome.storage?.local;
+}
+
+function parseLegacyJson(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+  } catch {
+    return fallback;
+  }
+}
+
+function getLegacyStorageState() {
+  return {
+    ga4_properties: parseLegacyJson("ga4_properties", []),
+    ga4_selected: parseInt(localStorage.getItem("ga4_selected") || "0"),
+    ga4_date_range: localStorage.getItem("ga4_date_range") || "last28days",
+    ga4_shortcuts: parseLegacyJson("ga4_shortcuts", []),
+    ga4_recent_reports: parseLegacyJson("ga4_recent_reports", [])
+  };
+}
+
+function getChromeStorage(keys) {
+  return new Promise(resolve => {
+    chrome.storage.local.get(keys, result => resolve(result || {}));
+  });
+}
+
+function setChromeStorage(values) {
+  return new Promise(resolve => {
+    chrome.storage.local.set(values, resolve);
+  });
+}
+
+async function initStorage() {
+  if (!hasChromeStorage()) {
+    storageState = { ...STORAGE_DEFAULTS, ...getLegacyStorageState(), ga4_storage_migrated: true };
+    return;
+  }
+
+  const stored = await getChromeStorage(STORAGE_KEYS);
+  if (!stored.ga4_storage_migrated) {
+    const legacy = getLegacyStorageState();
+    storageState = { ...STORAGE_DEFAULTS, ...legacy, ...stored, ga4_storage_migrated: true };
+    await setChromeStorage(storageState);
+    return;
+  }
+
+  storageState = { ...STORAGE_DEFAULTS, ...stored };
+}
+
+async function saveStorageValue(key, value) {
+  storageState[key] = value;
+  if (hasChromeStorage()) {
+    await setChromeStorage({ [key]: value });
+    return;
+  }
+
+  localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
+}
+
+function getProperties()    { return storageState.ga4_properties; }
+function saveProperties(p)  { return saveStorageValue("ga4_properties", p); }
+function getSelectedIndex() { return Number.parseInt(storageState.ga4_selected || "0"); }
+function saveSelectedIndex(i) { return saveStorageValue("ga4_selected", i); }
+function getDateRange()     { return storageState.ga4_date_range || "last28days"; }
+function saveDateRange(r)   { return saveStorageValue("ga4_date_range", r); }
+function getShortcuts()     { return storageState.ga4_shortcuts; }
+function saveShortcuts(s)   { return saveStorageValue("ga4_shortcuts", s); }
+function getRecentReports() { return storageState.ga4_recent_reports; }
+function saveRecentReports(r) { return saveStorageValue("ga4_recent_reports", r); }
 
 function buildHref(propertyId, path, dateRange) {
   return GA4ShortcutUtils.buildGa4Href(propertyId, path, dateRange);
@@ -437,6 +510,15 @@ function showView(name) {
   });
 }
 
+function setMainEmptyState(isEmpty) {
+  document.querySelector(".controls-row").style.display = isEmpty ? "none" : "flex";
+  document.getElementById("dashboard-grid").style.display = isEmpty ? "none" : "grid";
+  document.getElementById("shortcut-list").style.display = isEmpty ? "none" : "block";
+  document.getElementById("recent-list").style.display = isEmpty ? "none" : "block";
+  document.getElementById("report-list").style.display = isEmpty ? "none" : "block";
+  document.getElementById("empty-state").style.display = isEmpty ? "block" : "none";
+}
+
 function showMain() {
   showView("main-view");
   const properties = getProperties();
@@ -448,12 +530,12 @@ function showMain() {
 
   if (properties.length === 0) {
     select.appendChild(Object.assign(document.createElement("option"), { textContent: "No properties — add one" }));
+    setMainEmptyState(true);
     updateLinks("");
-    renderShortcuts();
-    renderRecentReports();
     document.getElementById("metrics-bar").textContent = "";
     clearDashboard();
   } else {
+    setMainEmptyState(false);
     properties.forEach((p, i) => {
       const opt = document.createElement("option");
       opt.value = i;
@@ -763,7 +845,7 @@ function exportProperties() {
   });
 }
 
-function importProperties() {
+async function importProperties() {
   const input = document.getElementById("import-input");
   const error = document.getElementById("import-error");
   error.textContent = "";
@@ -799,9 +881,9 @@ function importProperties() {
     return;
   }
 
-  saveProperties(properties);
-  saveShortcuts(shortcuts);
-  saveSelectedIndex(0);
+  await saveProperties(properties);
+  await saveShortcuts(shortcuts);
+  await saveSelectedIndex(0);
   input.value = "";
   document.getElementById("import-row").style.display = "none";
   renderManageList();
@@ -810,21 +892,18 @@ function importProperties() {
 
 // --- Init ---
 
-document.addEventListener("DOMContentLoaded", () => {
-  if (getProperties().length === 0) {
-    saveProperties([{ label: "peterbenoit.com (Personal)", id: "a356198589p490540007" }]);
-    saveSelectedIndex(0);
-  }
-
+document.addEventListener("DOMContentLoaded", async () => {
+  await initStorage();
   renderReports();
   showMain();
 
   document.getElementById("btn-add").onclick      = showAdd;
+  document.getElementById("btn-empty-add").onclick = showAdd;
   document.getElementById("btn-manage").onclick   = showManage;
   document.getElementById("btn-cancel").onclick   = showMain;
   document.getElementById("btn-manage-done").onclick = showMain;
 
-  document.getElementById("btn-save").onclick = () => {
+  document.getElementById("btn-save").onclick = async () => {
     const name  = document.getElementById("prop-name").value.trim();
     const rawId = document.getElementById("prop-id").value.trim();
     const error = document.getElementById("add-error");
@@ -837,8 +916,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const props = getProperties();
     props.push({ label: name, id });
-    saveProperties(props);
-    saveSelectedIndex(props.length - 1);
+    await saveProperties(props);
+    await saveSelectedIndex(props.length - 1);
     showMain();
   };
 
