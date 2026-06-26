@@ -311,6 +311,8 @@ function renderDatePills() {
   DATE_RANGES.forEach(({ label, value }) => {
     const btn = document.createElement("button");
     btn.className = "date-pill" + (value === current ? " active" : "");
+    btn.type = "button";
+    btn.setAttribute("aria-pressed", value === current ? "true" : "false");
     btn.textContent = label;
     btn.onclick = () => {
       saveDateRange(value);
@@ -371,7 +373,7 @@ async function fetchMetrics(propertyId) {
   } catch {
     if (!isCurrentMetricsRequest(requestId)) return;
 
-    el.innerHTML = `<button class="metric-connect" id="btn-connect">Connect Google →</button>`;
+    el.innerHTML = `<button class="metric-connect" id="btn-connect" type="button">Connect Google →</button>`;
     document.getElementById("btn-connect")?.addEventListener("click", async () => {
       let interactiveToken;
       try {
@@ -633,6 +635,8 @@ function renderManageList() {
 
     const copyBtn = document.createElement("button");
     copyBtn.className = "btn-icon-sm";
+    copyBtn.type = "button";
+    copyBtn.setAttribute("aria-label", "Copy property ID");
     copyBtn.textContent = "📋";
     copyBtn.title = "Copy property ID";
     copyBtn.onclick = () => {
@@ -644,6 +648,8 @@ function renderManageList() {
 
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "btn-icon-sm";
+    deleteBtn.type = "button";
+    deleteBtn.setAttribute("aria-label", "Delete property");
     deleteBtn.textContent = "🗑️";
     deleteBtn.title = "Delete";
     let confirming = false;
@@ -747,6 +753,8 @@ function renderShortcutManageList() {
 
     const upBtn = document.createElement("button");
     upBtn.className = "btn-icon-sm";
+    upBtn.type = "button";
+    upBtn.setAttribute("aria-label", "Move favorite up");
     upBtn.textContent = "↑";
     upBtn.title = "Move up";
     upBtn.disabled = i === 0;
@@ -759,6 +767,8 @@ function renderShortcutManageList() {
 
     const downBtn = document.createElement("button");
     downBtn.className = "btn-icon-sm";
+    downBtn.type = "button";
+    downBtn.setAttribute("aria-label", "Move favorite down");
     downBtn.textContent = "↓";
     downBtn.title = "Move down";
     downBtn.disabled = i === shortcuts.length - 1;
@@ -771,6 +781,8 @@ function renderShortcutManageList() {
 
     const copyBtn = document.createElement("button");
     copyBtn.className = "btn-icon-sm";
+    copyBtn.type = "button";
+    copyBtn.setAttribute("aria-label", "Copy favorite URL");
     copyBtn.textContent = "📋";
     copyBtn.title = "Copy GA4 URL";
     copyBtn.onclick = () => {
@@ -783,6 +795,8 @@ function renderShortcutManageList() {
 
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "btn-icon-sm";
+    deleteBtn.type = "button";
+    deleteBtn.setAttribute("aria-label", "Delete favorite");
     deleteBtn.textContent = "🗑️";
     deleteBtn.title = "Delete favorite";
     deleteBtn.onclick = () => {
