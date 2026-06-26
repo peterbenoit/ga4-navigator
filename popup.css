@@ -42,6 +42,18 @@ body {
   overflow-y: auto;
 }
 
+.property-bar label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 button, input, select, textarea {
   font: inherit;
   color: inherit;
@@ -436,6 +448,127 @@ a {
   font-size: 11px;
   margin-top: 2px;
   text-align: right;
+}
+
+/* ─── HEALTH CHECK ────────────────────────────── */
+
+.health-check {
+  margin: 0 16px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.health-check-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.health-check h2 {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+#health-status {
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.4;
+  margin-top: 3px;
+}
+
+.health-run {
+  flex: 0 0 auto;
+  min-height: 28px;
+  background: var(--orange-subtle);
+  border: 1px solid var(--orange);
+  border-radius: var(--radius-sm);
+  color: var(--orange);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 10px;
+}
+
+.health-run:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.health-results {
+  display: grid;
+  border-top: 1px solid var(--border);
+}
+
+.health-results:empty {
+  display: none;
+}
+
+.health-finding {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  color: inherit;
+  padding: 10px 14px;
+  text-decoration: none;
+}
+
+.health-finding + .health-finding {
+  border-top: 1px solid var(--border);
+}
+
+.health-finding:hover {
+  background: var(--card-hover);
+}
+
+.health-severity {
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.health-finding-critical .health-severity {
+  background: rgba(239, 68, 68, 0.14);
+  color: #f87171;
+}
+
+.health-finding-warning .health-severity {
+  background: rgba(234, 179, 8, 0.14);
+  color: #facc15;
+}
+
+.health-finding-info .health-severity {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+}
+
+.health-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.health-title {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.health-detail {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 /* ─── SECTION LABELS ─────────────────────────── */

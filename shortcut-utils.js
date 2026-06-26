@@ -220,6 +220,116 @@
     });
   }
 
+  function buildHealthCheckRequest() {
+    const sessions = [{ name: "sessions" }];
+    return {
+      requests: [
+        {
+          dateRanges: [{ startDate: "today", endDate: "today" }],
+          metrics: [...sessions, { name: "eventCount" }, { name: "keyEvents" }]
+        },
+        {
+          dateRanges: [{ startDate: "7daysAgo", endDate: "yesterday" }],
+          metrics: sessions
+        },
+        {
+          dateRanges: [{ startDate: "14daysAgo", endDate: "8daysAgo" }],
+          metrics: sessions
+        }
+      ]
+    };
+  }
+
+  function getMetricNumber(report, index = 0) {
+    const value = Number(report?.rows?.[0]?.metricValues?.[index]?.value || 0);
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  function buildHealthFindings(reports) {
+    const today = reports?.[0];
+    const recent = getMetricNumber(reports?.[1]);
+    const previous = getMetricNumber(reports?.[2]);
+    const sessionsToday = getMetricNumber(today, 0);
+    const eventsToday = getMetricNumber(today, 1);
+    const keyEventsToday = getMetricNumber(today, 2);
+    const findings = [];
+
+    if (sessionsToday === 0) {
+      const dailyAverage = Math.round(recent / 7);
+      findings.push({
+        id: "collection",
+        severity: recent >= 35 ? "critical" : "warning",
+        title: "No sessions recorded today",
+        detail: recent >= 35
+          ? `This property averaged ${formatMetricValue(dailyAverage)} per day over the previous week.`
+          : "The property has no session activity today and only a limited recent baseline.",
+        path: "/reports/realtime/overview?params=_u..nav%3Dmaui&collectionId=business-objectives"
+      });
+    } else {
+      findings.push({
+        id: "collection",
+        severity: "info",
+        title: "Session collection is active",
+        detail: `${formatMetricValue(sessionsToday)} sessions recorded today.`,
+        path: "/reports/realtime/overview?params=_u..nav%3Dmaui&collectionId=business-objectives"
+      });
+    }
+
+    const trafficPath = "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui";
+    if (previous === 0 && recent === 0) {
+      findings.push({
+        id: "traffic-trend",
+        severity: "warning",
+        title: "No recent traffic baseline",
+        detail: "No sessions were recorded in either complete seven-day period.",
+        path: trafficPath
+      });
+    } else if (previous === 0) {
+      findings.push({
+        id: "traffic-trend",
+        severity: "info",
+        title: "Recent traffic is collecting",
+        detail: `${formatMetricValue(recent)} sessions recorded in the latest complete week.`,
+        path: trafficPath
+      });
+    } else {
+      const change = Math.round(((recent - previous) / previous) * 100);
+      const down = change <= -50;
+      findings.push({
+        id: "traffic-trend",
+        severity: down ? "warning" : "info",
+        title: down ? "Traffic dropped sharply" : "Traffic trend is stable",
+        detail: down
+          ? `Sessions are down ${Math.abs(change)}% versus the prior complete week.`
+          : `Sessions changed ${change >= 0 ? "+" : ""}${change}% versus the prior complete week.`,
+        path: trafficPath
+      });
+    }
+
+    findings.push({
+      id: "events",
+      severity: eventsToday === 0 ? "warning" : "info",
+      title: eventsToday === 0 ? "No events recorded today" : "Event collection is active",
+      detail: eventsToday === 0
+        ? "GA4 has not recorded event activity for this property today."
+        : `${formatMetricValue(eventsToday)} events recorded today.`,
+      path: "/reports/events?params=_u..nav%3Dmaui"
+    });
+
+    findings.push({
+      id: "key-events",
+      severity: keyEventsToday === 0 ? "warning" : "info",
+      title: keyEventsToday === 0 ? "No key event activity today" : "Key events are active",
+      detail: keyEventsToday === 0
+        ? "No key events have been recorded today; this does not prove none are configured."
+        : `${formatMetricValue(keyEventsToday)} key events recorded today.`,
+      path: "/reports/events?params=_u..nav%3Dmaui"
+    });
+
+    const severityRank = { critical: 0, warning: 1, info: 2 };
+    return findings.sort((a, b) => severityRank[a.severity] - severityRank[b.severity]);
+  }
+
   function buildDashboardMetrics(report, realtime) {
     return [
       { label: "Sessions", value: formatMetricValue(getMetric(report, 0)) },
@@ -244,7 +354,9 @@
     getApiDateRange,
     buildDashboardMetrics,
     getTopInsightConfig,
-    buildTopInsightRows
+    buildTopInsightRows,
+    buildHealthCheckRequest,
+    buildHealthFindings
   };
 
   if (typeof module !== "undefined" && module.exports) {

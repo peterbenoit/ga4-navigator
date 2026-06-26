@@ -29,6 +29,7 @@ const DATE_RANGES = [
 const TOP_INSIGHT_TYPES = ["pages", "sources", "campaigns", "events"];
 
 let metricsRequestSequence = 0;
+let healthRequestSequence = 0;
 let selectedTopInsightType = "pages";
 
 // --- Storage ---
@@ -629,6 +630,141 @@ async function loadTopInsights(numericId, propertyId, token, dateRange, requestI
   }
 }
 
+// --- GA4 health check ---
+
+function clearHealthCheck() {
+  healthRequestSequence += 1;
+  document.getElementById("health-status").textContent = "";
+  document.getElementById("health-results").innerHTML = "";
+  const button = document.getElementById("btn-health-run");
+  button.disabled = false;
+  button.textContent = "Run Check";
+}
+
+function renderHealthFindings(findings, propertyId) {
+  const container = document.getElementById("health-results");
+  container.innerHTML = "";
+
+  findings.forEach(finding => {
+    const link = document.createElement("a");
+    link.className = `health-finding health-finding-${finding.severity}`;
+    link.href = buildHref(propertyId, finding.path, getDateRange());
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.onclick = () => recordRecentReport({
+      label: finding.title,
+      propertyId,
+      path: finding.path
+    });
+
+    const severity = document.createElement("span");
+    severity.className = "health-severity";
+    severity.textContent = finding.severity;
+
+    const copy = document.createElement("span");
+    copy.className = "health-copy";
+    const title = document.createElement("span");
+    title.className = "health-title";
+    title.textContent = finding.title;
+    const detail = document.createElement("span");
+    detail.className = "health-detail";
+    detail.textContent = finding.detail;
+    copy.appendChild(title);
+    copy.appendChild(detail);
+
+    link.appendChild(severity);
+    link.appendChild(copy);
+    container.appendChild(link);
+  });
+}
+
+function getIdentityToken(interactive) {
+  return new Promise((resolve, reject) => {
+    chrome.identity.getAuthToken({ interactive }, token => {
+      if (chrome.runtime.lastError || !token) reject(chrome.runtime.lastError || new Error("Auth failed"));
+      else resolve(token);
+    });
+  });
+}
+
+function removeIdentityToken(token) {
+  return new Promise(resolve => {
+    if (!chrome.identity.removeCachedAuthToken) return resolve();
+    chrome.identity.removeCachedAuthToken({ token }, resolve);
+  });
+}
+
+async function loadHealthReports(numericId, token) {
+  const response = await fetch(`${GA4_API}${numericId}:batchRunReports`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(GA4ShortcutUtils.buildHealthCheckRequest())
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    const error = new Error(body.error?.message || "Health check API error");
+    error.status = response.status;
+    throw error;
+  }
+  return body.reports || [];
+}
+
+async function runHealthCheck(propertyId) {
+  const requestId = ++healthRequestSequence;
+  const numericId = getNumericId(propertyId);
+  const status = document.getElementById("health-status");
+  const results = document.getElementById("health-results");
+  const button = document.getElementById("btn-health-run");
+
+  results.innerHTML = "";
+  if (!numericId) {
+    status.textContent = "Select a valid property first.";
+    return;
+  }
+  if (typeof chrome === "undefined" || !chrome.identity) {
+    status.textContent = "Health check requires the installed extension.";
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Running...";
+  status.textContent = "Checking collection and traffic...";
+
+  try {
+    let token;
+    try {
+      token = await getIdentityToken(false);
+    } catch {
+      token = await getIdentityToken(true);
+    }
+
+    let reports;
+    try {
+      reports = await loadHealthReports(numericId, token);
+    } catch (error) {
+      if (!isAuthApiError(error)) throw error;
+      await removeIdentityToken(token);
+      token = await getIdentityToken(true);
+      reports = await loadHealthReports(numericId, token);
+    }
+
+    if (requestId !== healthRequestSequence) return;
+    const findings = GA4ShortcutUtils.buildHealthFindings(reports);
+    renderHealthFindings(findings, propertyId);
+    status.textContent = `${findings.length} checks complete`;
+  } catch (error) {
+    if (requestId !== healthRequestSequence) return;
+    if (error?.status === 403) status.textContent = "Analytics permission denied.";
+    else if (error?.status === 401) status.textContent = "Google authentication expired.";
+    else status.textContent = "Health check unavailable.";
+  } finally {
+    if (requestId === healthRequestSequence) {
+      button.disabled = false;
+      button.textContent = "Run Again";
+    }
+  }
+}
+
 // --- Views ---
 
 function showView(name) {
@@ -641,6 +777,7 @@ function setMainEmptyState(isEmpty) {
   document.querySelector(".controls-row").style.display = isEmpty ? "none" : "flex";
   document.getElementById("dashboard-grid").style.display = isEmpty ? "none" : "grid";
   document.getElementById("top-insights").style.display = isEmpty ? "none" : "block";
+  document.getElementById("health-check").style.display = isEmpty ? "none" : "block";
   document.getElementById("shortcut-list").style.display = isEmpty ? "none" : "block";
   document.getElementById("recent-list").style.display = isEmpty ? "none" : "block";
   document.getElementById("report-list").style.display = isEmpty ? "none" : "block";
@@ -662,6 +799,7 @@ function showMain() {
     updateLinks("");
     document.getElementById("metrics-bar").textContent = "";
     clearDashboard();
+    clearHealthCheck();
   } else {
     setMainEmptyState(false);
     properties.forEach((p, i) => {
@@ -674,12 +812,14 @@ function showMain() {
     renderShortcuts();
     renderRecentReports();
     updateLinks(properties[idx]?.id || "");
+    clearHealthCheck();
     fetchMetrics(properties[idx]?.id || "");
 
     select.onchange = () => {
       const i = parseInt(select.value);
       saveSelectedIndex(i);
       updateLinks(properties[i]?.id || "");
+      clearHealthCheck();
       fetchMetrics(properties[i]?.id || "");
     };
   }
@@ -1042,6 +1182,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("btn-manage").onclick   = showManage;
   document.getElementById("btn-cancel").onclick   = showMain;
   document.getElementById("btn-manage-done").onclick = showMain;
+  document.getElementById("btn-health-run").onclick = () => {
+    const property = getProperties()[getSelectedIndex()];
+    runHealthCheck(property?.id || "");
+  };
 
   document.getElementById("btn-save").onclick = async () => {
     const name  = document.getElementById("prop-name").value.trim();

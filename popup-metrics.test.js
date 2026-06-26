@@ -375,3 +375,45 @@ test("fetchMetrics loads and renders top page insights", async () => {
   assert.equal(row.href, "https://analytics.google.com/analytics/web/#/a356198589p490540007/reports/explorer?params=_u..nav%3Dmaui%26_u.date00%3D20260530%26_u.date01%3D20260626&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens");
   assert.deepEqual(row.children.map(child => child.textContent), ["Home", "/", "42", "Views"]);
 });
+
+test("runHealthCheck loads a batch report and renders actionable findings", async () => {
+  const requests = [];
+  const context = loadPopup({
+    chrome: {
+      runtime: { lastError: null },
+      identity: {
+        getAuthToken({ interactive }, callback) {
+          assert.equal(interactive, false);
+          callback("cached-token");
+        },
+        removeCachedAuthToken() {
+          assert.fail("successful requests should not clear the cached token");
+        }
+      }
+    },
+    async fetch(url, options) {
+      requests.push({ url, options });
+      return jsonResponse(200, {
+        reports: [
+          { rows: [{ metricValues: [{ value: "0" }, { value: "0" }, { value: "0" }] }] },
+          { rows: [{ metricValues: [{ value: "140" }] }] },
+          { rows: [{ metricValues: [{ value: "150" }] }] }
+        ]
+      });
+    }
+  });
+
+  await context.runHealthCheck("a356198589p490540007");
+
+  assert.equal(requests.length, 1);
+  assert.match(requests[0].url, /properties\/490540007:batchRunReports$/);
+  assert.equal(requests[0].options.headers.Authorization, "Bearer cached-token");
+  assert.deepEqual(JSON.parse(requests[0].options.body), GA4ShortcutUtils.buildHealthCheckRequest());
+
+  const findings = context.document.getElementById("health-results").children;
+  assert.equal(findings.length, 4);
+  assert.equal(findings[0].className, "health-finding health-finding-critical");
+  assert.equal(findings[0].children[1].children[0].textContent, "No sessions recorded today");
+  assert.match(findings[0].href, /reports\/realtime\/overview/);
+  assert.equal(context.document.getElementById("health-status").textContent, "4 checks complete");
+});

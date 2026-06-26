@@ -13,7 +13,9 @@ const {
   getApiDateRange,
   buildDashboardMetrics,
   getTopInsightConfig,
-  buildTopInsightRows
+  buildTopInsightRows,
+  buildHealthCheckRequest,
+  buildHealthFindings
 } = require("./shortcut-utils");
 
 test("parseGa4ReportUrl extracts the GA4 route id and report path from a GA4 URL", () => {
@@ -352,4 +354,63 @@ test("buildTopInsightRows converts GA4 rows to ranked display rows", () => {
 
 test("buildTopInsightRows returns an empty list when GA4 has no rows", () => {
   assert.deepEqual(buildTopInsightRows({}, getTopInsightConfig("sources")), []);
+});
+
+test("buildHealthCheckRequest requests today and two complete seven-day periods", () => {
+  assert.deepEqual(buildHealthCheckRequest(), {
+    requests: [
+      {
+        dateRanges: [{ startDate: "today", endDate: "today" }],
+        metrics: [{ name: "sessions" }, { name: "eventCount" }, { name: "keyEvents" }]
+      },
+      {
+        dateRanges: [{ startDate: "7daysAgo", endDate: "yesterday" }],
+        metrics: [{ name: "sessions" }]
+      },
+      {
+        dateRanges: [{ startDate: "14daysAgo", endDate: "8daysAgo" }],
+        metrics: [{ name: "sessions" }]
+      }
+    ]
+  });
+});
+
+test("buildHealthFindings flags stopped collection as critical", () => {
+  const findings = buildHealthFindings([
+    { rows: [{ metricValues: [{ value: "0" }, { value: "0" }, { value: "0" }] }] },
+    { rows: [{ metricValues: [{ value: "140" }] }] },
+    { rows: [{ metricValues: [{ value: "150" }] }] }
+  ]);
+
+  assert.equal(findings[0].severity, "critical");
+  assert.equal(findings[0].title, "No sessions recorded today");
+  assert.match(findings[0].detail, /20 per day/);
+});
+
+test("buildHealthFindings flags a fifty percent traffic drop", () => {
+  const findings = buildHealthFindings([
+    { rows: [{ metricValues: [{ value: "8" }, { value: "40" }, { value: "2" }] }] },
+    { rows: [{ metricValues: [{ value: "50" }] }] },
+    { rows: [{ metricValues: [{ value: "100" }] }] }
+  ]);
+
+  const traffic = findings.find(finding => finding.id === "traffic-trend");
+  assert.equal(traffic.severity, "warning");
+  assert.match(traffic.detail, /down 50%/);
+});
+
+test("buildHealthFindings reports healthy collection signals", () => {
+  const findings = buildHealthFindings([
+    { rows: [{ metricValues: [{ value: "12" }, { value: "80" }, { value: "4" }] }] },
+    { rows: [{ metricValues: [{ value: "105" }] }] },
+    { rows: [{ metricValues: [{ value: "100" }] }] }
+  ]);
+
+  assert.deepEqual(findings.map(finding => finding.severity), ["info", "info", "info", "info"]);
+  assert.deepEqual(findings.map(finding => finding.id), [
+    "collection",
+    "traffic-trend",
+    "events",
+    "key-events"
+  ]);
 });
