@@ -280,6 +280,15 @@ async function fetchMetrics(propertyId) {
     });
   });
 
+  const removeCachedToken = (cachedToken) => new Promise(resolve => {
+    if (!chrome.identity.removeCachedAuthToken) {
+      resolve();
+      return;
+    }
+
+    chrome.identity.removeCachedAuthToken({ token: cachedToken }, resolve);
+  });
+
   let token;
   try {
     token = await getToken(false);
@@ -296,9 +305,9 @@ async function fetchMetrics(propertyId) {
 
       try {
         await loadMetrics(el, numericId, interactiveToken, getDateRange());
-      } catch {
+      } catch (err) {
         clearDashboard();
-        el.innerHTML = `<span class="metric-hint">Metrics unavailable</span>`;
+        el.innerHTML = `<span class="metric-hint">${getMetricsFailureMessage(err)}</span>`;
       }
     });
     return;
@@ -306,10 +315,36 @@ async function fetchMetrics(propertyId) {
 
   try {
     await loadMetrics(el, numericId, token, getDateRange());
-  } catch {
+  } catch (err) {
+    if (isAuthApiError(err)) {
+      await removeCachedToken(token);
+
+      try {
+        const interactiveToken = await getToken(true);
+        await loadMetrics(el, numericId, interactiveToken, getDateRange());
+        return;
+      } catch (retryErr) {
+        clearDashboard();
+        el.innerHTML = `<span class="metric-hint">${getMetricsFailureMessage(retryErr)}</span>`;
+        return;
+      }
+    }
+
     clearDashboard();
-    el.innerHTML = `<span class="metric-hint">Metrics unavailable</span>`;
+    el.innerHTML = `<span class="metric-hint">${getMetricsFailureMessage(err)}</span>`;
   }
+}
+
+function isAuthApiError(err) {
+  return err?.status === 401 || err?.status === 403;
+}
+
+function getMetricsFailureMessage(err) {
+  if (err?.status === 401) return "Auth expired. Connect Google again.";
+  if (err?.status === 403) return "Analytics permission denied.";
+  if (err?.source === "realtime") return "Realtime metrics unavailable.";
+  if (err?.source === "report") return "Report metrics unavailable.";
+  return "Metrics unavailable.";
 }
 
 function clearDashboard() {
@@ -359,8 +394,19 @@ async function loadMetrics(el, numericId, token, dateRange) {
   const report   = await reportRes.json();
   const realtime = await realtimeRes.json();
 
-  if (!reportRes.ok) throw new Error(report.error?.message || "API error");
-  if (!realtimeRes.ok) throw new Error(realtime.error?.message || "Realtime API error");
+  if (!reportRes.ok) {
+    const err = new Error(report.error?.message || "Report API error");
+    err.status = reportRes.status;
+    err.source = "report";
+    throw err;
+  }
+
+  if (!realtimeRes.ok) {
+    const err = new Error(realtime.error?.message || "Realtime API error");
+    err.status = realtimeRes.status;
+    err.source = "realtime";
+    throw err;
+  }
 
   renderDashboard(GA4ShortcutUtils.buildDashboardMetrics(report, realtime));
   el.innerHTML = `<span class="metric-hint">Updated just now</span>`;
