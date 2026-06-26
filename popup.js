@@ -26,6 +26,8 @@ const DATE_RANGES = [
   { label: "90d", value: "last90days" }
 ];
 
+let metricsRequestSequence = 0;
+
 // --- Storage ---
 
 function getProperties()    { return JSON.parse(localStorage.getItem("ga4_properties") || "[]"); }
@@ -258,6 +260,7 @@ function getNumericId(id) {
 }
 
 async function fetchMetrics(propertyId) {
+  const requestId = ++metricsRequestSequence;
   const el = document.getElementById("metrics-bar");
   clearDashboard();
   if (!propertyId) { el.textContent = ""; return; }
@@ -293,6 +296,8 @@ async function fetchMetrics(propertyId) {
   try {
     token = await getToken(false);
   } catch {
+    if (!isCurrentMetricsRequest(requestId)) return;
+
     el.innerHTML = `<button class="metric-connect" id="btn-connect">Connect Google →</button>`;
     document.getElementById("btn-connect")?.addEventListener("click", async () => {
       let interactiveToken;
@@ -304,8 +309,10 @@ async function fetchMetrics(propertyId) {
       }
 
       try {
-        await loadMetrics(el, numericId, interactiveToken, getDateRange());
+        if (!isCurrentMetricsRequest(requestId)) return;
+        await loadMetrics(el, numericId, interactiveToken, getDateRange(), requestId);
       } catch (err) {
+        if (!isCurrentMetricsRequest(requestId)) return;
         clearDashboard();
         el.innerHTML = `<span class="metric-hint">${getMetricsFailureMessage(err)}</span>`;
       }
@@ -314,16 +321,20 @@ async function fetchMetrics(propertyId) {
   }
 
   try {
-    await loadMetrics(el, numericId, token, getDateRange());
+    await loadMetrics(el, numericId, token, getDateRange(), requestId);
   } catch (err) {
+    if (!isCurrentMetricsRequest(requestId)) return;
+
     if (isAuthApiError(err)) {
       await removeCachedToken(token);
 
       try {
         const interactiveToken = await getToken(true);
-        await loadMetrics(el, numericId, interactiveToken, getDateRange());
+        if (!isCurrentMetricsRequest(requestId)) return;
+        await loadMetrics(el, numericId, interactiveToken, getDateRange(), requestId);
         return;
       } catch (retryErr) {
+        if (!isCurrentMetricsRequest(requestId)) return;
         clearDashboard();
         el.innerHTML = `<span class="metric-hint">${getMetricsFailureMessage(retryErr)}</span>`;
         return;
@@ -333,6 +344,10 @@ async function fetchMetrics(propertyId) {
     clearDashboard();
     el.innerHTML = `<span class="metric-hint">${getMetricsFailureMessage(err)}</span>`;
   }
+}
+
+function isCurrentMetricsRequest(requestId) {
+  return requestId === metricsRequestSequence;
 }
 
 function isAuthApiError(err) {
@@ -366,7 +381,7 @@ function renderDashboard(metrics) {
   });
 }
 
-async function loadMetrics(el, numericId, token, dateRange) {
+async function loadMetrics(el, numericId, token, dateRange, requestId) {
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
   const apiDateRange = GA4ShortcutUtils.getApiDateRange(dateRange);
 
@@ -407,6 +422,8 @@ async function loadMetrics(el, numericId, token, dateRange) {
     err.source = "realtime";
     throw err;
   }
+
+  if (!isCurrentMetricsRequest(requestId)) return;
 
   renderDashboard(GA4ShortcutUtils.buildDashboardMetrics(report, realtime));
   el.innerHTML = `<span class="metric-hint">Updated just now</span>`;

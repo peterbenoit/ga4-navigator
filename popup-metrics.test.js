@@ -11,6 +11,7 @@ function createElement(id) {
     innerHTML: "",
     textContent: "",
     children: [],
+    addEventListener() {},
     appendChild(child) {
       this.children.push(child);
     },
@@ -72,6 +73,14 @@ function jsonResponse(status, body) {
       return body;
     }
   };
+}
+
+function deferredResponse() {
+  let resolve;
+  const promise = new Promise(done => {
+    resolve = done;
+  });
+  return { promise, resolve };
 }
 
 test("fetchMetrics clears a rejected cached token and retries interactively once", async () => {
@@ -186,4 +195,121 @@ test("fetchMetrics reports realtime API failures separately", async () => {
   assert.equal(fetchCount, 2);
   assert.match(context.document.getElementById("metrics-bar").innerHTML, /Realtime metrics unavailable/);
   assert.equal(context.document.getElementById("dashboard-grid").children.length, 0);
+});
+
+test("fetchMetrics ignores stale responses from previously selected properties", async () => {
+  const firstReport = deferredResponse();
+  const firstRealtime = deferredResponse();
+  const responsesByProperty = new Map([
+    ["111", [firstReport.promise, firstRealtime.promise]],
+    [
+      "222",
+      [
+        Promise.resolve(jsonResponse(200, {
+          rows: [{ metricValues: [{ value: "20" }, { value: "21" }, { value: "22" }, { value: "23" }] }]
+        })),
+        Promise.resolve(jsonResponse(200, {
+          rows: [{ metricValues: [{ value: "24" }] }]
+        }))
+      ]
+    ]
+  ]);
+
+  const context = loadPopup({
+    chrome: {
+      runtime: { lastError: null },
+      identity: {
+        getAuthToken({ interactive }, callback) {
+          assert.equal(interactive, false);
+          callback("cached-token");
+        },
+        removeCachedAuthToken() {
+          assert.fail("successful requests should not clear the cached token");
+        }
+      }
+    },
+    fetch(url) {
+      const propertyId = url.match(/properties\/(\d+):/)?.[1];
+      const queue = responsesByProperty.get(propertyId);
+      assert.ok(queue, `unexpected property request: ${url}`);
+      return queue.shift();
+    }
+  });
+
+  const staleRequest = context.fetchMetrics("a1p111");
+  const latestRequest = context.fetchMetrics("a1p222");
+
+  await latestRequest;
+
+  assert.deepEqual(
+    context.document.getElementById("dashboard-grid").children.map(card => card.valueEl.textContent),
+    ["20", "21", "22", "23", "24"]
+  );
+
+  firstReport.resolve(jsonResponse(200, {
+    rows: [{ metricValues: [{ value: "10" }, { value: "11" }, { value: "12" }, { value: "13" }] }]
+  }));
+  firstRealtime.resolve(jsonResponse(200, {
+    rows: [{ metricValues: [{ value: "14" }] }]
+  }));
+
+  await staleRequest;
+
+  assert.deepEqual(
+    context.document.getElementById("dashboard-grid").children.map(card => card.valueEl.textContent),
+    ["20", "21", "22", "23", "24"]
+  );
+});
+
+test("fetchMetrics ignores stale silent-auth failures after a newer request renders", async () => {
+  const firstTokenFailure = deferredResponse();
+  const tokenCalls = [];
+
+  const context = loadPopup({
+    chrome: {
+      runtime: { lastError: null },
+      identity: {
+        getAuthToken({ interactive }, callback) {
+          tokenCalls.push(interactive);
+          if (tokenCalls.length === 1) {
+            firstTokenFailure.promise.then(() => {
+              context.chrome.runtime.lastError = { message: "Not signed in" };
+              callback();
+              context.chrome.runtime.lastError = null;
+            });
+            return;
+          }
+
+          callback("cached-token");
+        },
+        removeCachedAuthToken() {
+          assert.fail("successful latest request should not clear the cached token");
+        }
+      }
+    },
+    async fetch(url) {
+      if (url.includes("runRealtimeReport")) {
+        return jsonResponse(200, {
+          rows: [{ metricValues: [{ value: "34" }] }]
+        });
+      }
+
+      return jsonResponse(200, {
+        rows: [{ metricValues: [{ value: "30" }, { value: "31" }, { value: "32" }, { value: "33" }] }]
+      });
+    }
+  });
+
+  const staleRequest = context.fetchMetrics("a1p111");
+  const latestRequest = context.fetchMetrics("a1p222");
+
+  await latestRequest;
+  firstTokenFailure.resolve();
+  await staleRequest;
+
+  assert.deepEqual(
+    context.document.getElementById("dashboard-grid").children.map(card => card.valueEl.textContent),
+    ["30", "31", "32", "33", "34"]
+  );
+  assert.equal(context.document.getElementById("metrics-bar").innerHTML, "<span class=\"metric-hint\">Updated just now</span>");
 });
