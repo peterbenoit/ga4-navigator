@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const GA4ShortcutUtils = require("./shortcut-utils");
+const GA4AnalyticsUtils = require("./analytics-utils");
 
 function createElement(id) {
   return {
@@ -56,7 +57,7 @@ function loadPopup(overrides = {}) {
     Date,
     URL,
     GA4ShortcutUtils: overrides.GA4ShortcutUtils || GA4ShortcutUtils,
-    GA4AnalyticsUtils: overrides.GA4AnalyticsUtils,
+    GA4AnalyticsUtils: overrides.GA4AnalyticsUtils || GA4AnalyticsUtils,
     localStorage: {
       getItem() {
         return null;
@@ -417,7 +418,7 @@ test("runHealthCheck loads a batch report and renders actionable findings", asyn
   assert.equal(requests.length, 1);
   assert.match(requests[0].url, /properties\/490540007:batchRunReports$/);
   assert.equal(requests[0].options.headers.Authorization, "Bearer cached-token");
-  assert.deepEqual(JSON.parse(requests[0].options.body), GA4ShortcutUtils.buildHealthCheckRequest());
+  assert.deepEqual(JSON.parse(requests[0].options.body), GA4AnalyticsUtils.buildHealthCheckRequest());
 
   const findings = context.document.getElementById("health-results").children;
   assert.equal(findings.length, 4);

@@ -472,26 +472,17 @@ function renderDashboard(metrics) {
 
 async function loadMetrics(el, numericId, token, dateRange, requestId) {
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-  const apiDateRange = GA4ShortcutUtils.getApiDateRange(dateRange);
 
   const [reportRes, realtimeRes] = await Promise.all([
     fetch(`${GA4_API}${numericId}:runReport`, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        dateRanges: [apiDateRange],
-        metrics: [
-          { name: "sessions" },
-          { name: "totalUsers" },
-          { name: "screenPageViews" },
-          { name: "eventCount" }
-        ]
-      })
+      body: JSON.stringify(GA4AnalyticsUtils.buildOverviewRequest(dateRange))
     }),
     fetch(`${GA4_API}${numericId}:runRealtimeReport`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ metrics: [{ name: "activeUsers" }] })
+      body: JSON.stringify(GA4AnalyticsUtils.buildRealtimeRequest())
     })
   ]);
 
@@ -514,7 +505,7 @@ async function loadMetrics(el, numericId, token, dateRange, requestId) {
 
   if (!isCurrentMetricsRequest(requestId)) return;
 
-  renderDashboard(GA4ShortcutUtils.buildDashboardMetrics(report, realtime));
+  renderDashboard(GA4AnalyticsUtils.buildDashboardMetrics(report, realtime));
   el.innerHTML = `<span class="metric-hint">Updated just now</span>`;
 }
 
@@ -523,7 +514,7 @@ function renderTopInsightTabs() {
   tabs.innerHTML = "";
 
   TOP_INSIGHT_TYPES.forEach(type => {
-    const config = GA4ShortcutUtils.getTopInsightConfig(type);
+    const config = GA4AnalyticsUtils.getTopInsightConfig(type);
     const btn = document.createElement("button");
     btn.className = "insight-tab" + (type === selectedTopInsightType ? " active" : "");
     btn.type = "button";
@@ -597,23 +588,13 @@ async function loadTopInsights(numericId, propertyId, token, dateRange, requestI
   renderTopInsightTabs();
   setTopInsightsStatus("Loading insights...");
 
-  const config = GA4ShortcutUtils.getTopInsightConfig(selectedTopInsightType);
-  const dimensions = [{ name: config.dimension }];
-  if (config.secondaryDimension) {
-    dimensions.push({ name: config.secondaryDimension });
-  }
+  const config = GA4AnalyticsUtils.getTopInsightConfig(selectedTopInsightType);
 
   try {
     const res = await fetch(`${GA4_API}${numericId}:runReport`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        dateRanges: [GA4ShortcutUtils.getApiDateRange(dateRange)],
-        dimensions,
-        metrics: [{ name: config.metric }],
-        orderBys: [{ metric: { metricName: config.metric }, desc: true }],
-        limit: 5
-      })
+      body: JSON.stringify(GA4AnalyticsUtils.buildTopInsightRequest(selectedTopInsightType, dateRange))
     });
     const report = await res.json();
 
@@ -622,7 +603,7 @@ async function loadTopInsights(numericId, propertyId, token, dateRange, requestI
     }
 
     if (!isCurrentMetricsRequest(requestId)) return;
-    renderTopInsightRows(GA4ShortcutUtils.buildTopInsightRows(report, config), propertyId, config);
+    renderTopInsightRows(GA4AnalyticsUtils.buildTopInsightRows(report, config), propertyId, config);
   } catch {
     if (!isCurrentMetricsRequest(requestId)) return;
     document.getElementById("insight-list").innerHTML = "";
@@ -698,7 +679,7 @@ async function loadHealthReports(numericId, token) {
   const response = await fetch(`${GA4_API}${numericId}:batchRunReports`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify(GA4ShortcutUtils.buildHealthCheckRequest())
+    body: JSON.stringify(GA4AnalyticsUtils.buildHealthCheckRequest())
   });
   const body = await response.json();
   if (!response.ok) {
@@ -749,7 +730,7 @@ async function runHealthCheck(propertyId) {
     }
 
     if (requestId !== healthRequestSequence) return;
-    const findings = GA4ShortcutUtils.buildHealthFindings(reports);
+    const findings = GA4AnalyticsUtils.buildHealthFindings(reports);
     renderHealthFindings(findings, propertyId);
     status.textContent = `${findings.length} checks complete`;
   } catch (error) {

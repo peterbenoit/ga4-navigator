@@ -51,6 +51,7 @@ test("date range buttons expose their selected state", () => {
     Date,
     URL,
     GA4ShortcutUtils: require("./shortcut-utils"),
+    GA4AnalyticsUtils: require("./analytics-utils"),
     localStorage: {
       getItem() {
         return null;
