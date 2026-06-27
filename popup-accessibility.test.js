@@ -7,7 +7,7 @@ const html = fs.readFileSync("popup.html", "utf8");
 const popup = fs.readFileSync("popup.js", "utf8");
 
 test("popup form controls have programmatic labels", () => {
-  assert.match(html, /<label\s+for="propertySelect">Property:<\/label>/);
+  assert.match(html, /<label\b[^>]*\bfor="propertySelect"[^>]*>\s*Property\s*<\/label>/);
   assert.match(html, /<label\s+for="prop-name">Nickname<\/label>/);
   assert.match(html, /<label\s+for="prop-id">Paste any GA4 URL from that account<\/label>/);
 });

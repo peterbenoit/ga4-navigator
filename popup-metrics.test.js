@@ -55,7 +55,8 @@ function loadPopup(overrides = {}) {
     console,
     Date,
     URL,
-    GA4ShortcutUtils,
+    GA4ShortcutUtils: overrides.GA4ShortcutUtils || GA4ShortcutUtils,
+    GA4AnalyticsUtils: overrides.GA4AnalyticsUtils,
     localStorage: {
       getItem() {
         return null;
@@ -324,8 +325,16 @@ test("fetchMetrics ignores stale silent-auth failures after a newer request rend
 
 test("fetchMetrics loads and renders top page insights", async () => {
   const requests = [];
+  const fixedNow = new Date("2026-06-26T12:00:00");
+  const fixedShortcutUtils = {
+    ...GA4ShortcutUtils,
+    buildGa4Href(propertyId, path, dateRange) {
+      return GA4ShortcutUtils.buildGa4Href(propertyId, path, dateRange, fixedNow);
+    }
+  };
 
   const context = loadPopup({
+    GA4ShortcutUtils: fixedShortcutUtils,
     chrome: {
       runtime: { lastError: null },
       identity: {
