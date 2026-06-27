@@ -28,6 +28,18 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
   - Each row opens the matching GA4 detail report when clicked.
   - Lists handle missing data cleanly.
 
+### Expanded analysis views
+
+- **Idea:** Add deeper GA4 analysis without recreating the full GA4 interface inside the extension.
+- **Examples:** Landing-page performance, device breakdown, audience composition, and engagement diagnostics.
+- **Why:** These views answer common performance questions and move the extension beyond navigation links.
+- **Starter acceptance criteria:**
+  - Landing pages show sessions, engagement rate, and bounce rate.
+  - Device categories show sessions and engagement rate.
+  - Audience metrics distinguish total, new, and returning users.
+  - Engagement views include engaged sessions, average session duration, views, and bounce rate.
+  - Optional datasets load on demand so opening the extension does not trigger every report request.
+
 ### Favorites and custom shortcuts
 
 - **Idea:** Let users create their own report shortcuts instead of being locked into the built-in buttons.
@@ -94,7 +106,10 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
 - **Examples:** Today vs yesterday, last 7 days vs previous 7 days, last 28 days vs previous 28 days.
 - **Why:** Raw metric counts are less useful without context.
 - **Starter acceptance criteria:**
-  - Dashboard metrics show percent change.
+  - Comparisons use adjacent periods of equal length.
+  - Dashboard metrics show absolute and percent change.
+  - Missing previous values are shown as unavailable rather than zero.
+  - A zero previous value is shown as new activity rather than an infinite percentage.
   - Positive/negative direction is clear but not misleading for metrics where lower is better.
   - Comparison mode can be toggled off.
 
@@ -150,13 +165,15 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
 
 ### Exportable quick reports
 
-- **Idea:** Generate a small text or markdown summary from fetched metrics.
+- **Idea:** Generate a deterministic text or Markdown summary locally from normalized metrics.
 - **Examples:** "Last 28 days: sessions, top pages, top sources, key events."
 - **Why:** Helps users share lightweight updates without screenshots or opening GA4.
 - **Starter acceptance criteria:**
   - User can copy a formatted summary to clipboard.
   - Summary includes property name, date range, and generated timestamp.
-  - Missing metrics are omitted or clearly labeled.
+  - Successful sections remain available when another dataset fails.
+  - Missing metrics and unavailable sections are omitted or clearly labeled.
+  - Report generation does not require an AI provider or send analytics data externally.
 
 ### Report URL parser
 
@@ -208,6 +225,16 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
 - **Why:** Many GA4 workflows end in Looker Studio rather than GA4 itself.
 - **Notes:** Could start as simple external links before attempting API integration.
 
+### Optional Search Console integration
+
+- **Idea:** Add search-performance analysis as a separate opt-in connection.
+- **Why:** GA4 explains what visitors do after arriving; Search Console explains which searches and pages bring them there.
+- **Notes:**
+  - Request the `webmasters.readonly` OAuth scope only when the user opts in.
+  - Map Search Console site resources to GA4 properties explicitly instead of assuming their identifiers match.
+  - Show top queries, query-to-page mappings, low-CTR opportunities, and queries near page one.
+  - Keep Search Console authentication and request failures isolated from GA4 dashboard data.
+
 ### AI-assisted metric summaries
 
 - **Idea:** Generate plain-English summaries of metric changes and anomalies.
@@ -221,4 +248,3 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
 3. **Top pages and traffic sources** because they answer common questions quickly.
 4. **Smart search / command palette** because it keeps the UI scalable as features grow.
 5. **Health check** because it creates differentiated value beyond navigation.
-
