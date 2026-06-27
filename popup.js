@@ -31,6 +31,7 @@ const TOP_INSIGHT_TYPES = ["pages", "sources", "campaigns", "events"];
 let metricsRequestSequence = 0;
 let healthRequestSequence = 0;
 let selectedTopInsightType = "pages";
+let compareMode = false;
 
 // --- Storage ---
 
@@ -312,6 +313,7 @@ function renderDatePills() {
   const container = document.getElementById("date-pills");
   container.innerHTML = "";
   const current = getDateRange();
+
   DATE_RANGES.forEach(({ label, value }) => {
     const btn = document.createElement("button");
     btn.className = "date-pill" + (value === current ? " active" : "");
@@ -329,6 +331,20 @@ function renderDatePills() {
     };
     container.appendChild(btn);
   });
+
+  const compareBtn = document.createElement("button");
+  compareBtn.className = "date-pill compare-toggle" + (compareMode ? " active" : "");
+  compareBtn.type = "button";
+  compareBtn.setAttribute("aria-pressed", compareMode ? "true" : "false");
+  compareBtn.title = "Compare to previous period";
+  compareBtn.textContent = "vs prev";
+  compareBtn.onclick = () => {
+    compareMode = !compareMode;
+    renderDatePills();
+    const props = getProperties();
+    fetchMetrics(props[getSelectedIndex()]?.id || "");
+  };
+  container.appendChild(compareBtn);
 }
 
 // --- GA4 Data API metrics ---
@@ -455,6 +471,16 @@ function clearTopInsights() {
   document.getElementById("insight-status").textContent = "";
 }
 
+function formatDelta(delta) {
+  if (!delta || delta.state === "unavailable") return null;
+  if (delta.state === "unchanged") return { text: "—", dir: "flat" };
+  if (delta.state === "new") return { text: "New", dir: "up" };
+  const pct = delta.percent !== null
+    ? `${delta.percent > 0 ? "+" : ""}${delta.percent}%`
+    : `${delta.absolute > 0 ? "+" : ""}${delta.absolute}`;
+  return { text: pct, dir: delta.absolute > 0 ? "up" : "down" };
+}
+
 function renderDashboard(metrics) {
   const grid = document.getElementById("dashboard-grid");
   grid.innerHTML = "";
@@ -466,14 +492,24 @@ function renderDashboard(metrics) {
       <span class="metric-card-label"></span>`;
     card.querySelector(".metric-card-value").textContent = metric.value;
     card.querySelector(".metric-card-label").textContent = metric.label;
+
+    const d = metric.delta ? formatDelta(metric.delta) : null;
+    if (d) {
+      const badge = document.createElement("span");
+      badge.className = `metric-card-delta metric-card-delta-${d.dir}`;
+      badge.textContent = d.text;
+      card.appendChild(badge);
+    }
+
     grid.appendChild(card);
   });
 }
 
 async function loadMetrics(el, numericId, token, dateRange, requestId) {
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const compRanges = compareMode ? GA4AnalyticsUtils.getComparisonDateRanges(dateRange) : null;
 
-  const [reportRes, realtimeRes] = await Promise.all([
+  const fetches = [
     fetch(`${GA4_API}${numericId}:runReport`, {
       method: "POST",
       headers,
@@ -484,10 +520,21 @@ async function loadMetrics(el, numericId, token, dateRange, requestId) {
       headers,
       body: JSON.stringify(GA4AnalyticsUtils.buildRealtimeRequest())
     })
-  ]);
+  ];
+
+  if (compRanges) {
+    fetches.push(fetch(`${GA4_API}${numericId}:runReport`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(GA4AnalyticsUtils.buildOverviewRequest(dateRange, compRanges[1]))
+    }));
+  }
+
+  const [reportRes, realtimeRes, prevReportRes] = await Promise.all(fetches);
 
   const report   = await reportRes.json();
   const realtime = await realtimeRes.json();
+  const previous = prevReportRes ? await prevReportRes.json() : null;
 
   if (!reportRes.ok) {
     const err = new Error(report.error?.message || "Report API error");
@@ -505,7 +552,8 @@ async function loadMetrics(el, numericId, token, dateRange, requestId) {
 
   if (!isCurrentMetricsRequest(requestId)) return;
 
-  renderDashboard(GA4AnalyticsUtils.buildDashboardMetrics(report, realtime));
+  const prevReport = (previous && prevReportRes.ok) ? previous : null;
+  renderDashboard(GA4AnalyticsUtils.buildDashboardMetrics(report, realtime, prevReport));
   el.innerHTML = `<span class="metric-hint">Updated just now</span>`;
 }
 

@@ -346,6 +346,46 @@ a { color: inherit; text-decoration: none; }
   white-space: nowrap;
 }
 
+/* Delta badges on metric cards */
+
+.metric-card-delta {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-top: 5px;
+  padding: 1px 5px;
+  border-radius: 10px;
+}
+
+.metric-card-delta-up {
+  background: #e6f4ec;
+  color: var(--green);
+}
+
+.metric-card-delta-down {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.metric-card-delta-flat {
+  background: var(--card-alt);
+  color: var(--text-dim);
+}
+
+/* Compare toggle pill */
+
+.compare-toggle {
+  border-style: dashed;
+}
+
+.compare-toggle.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  border-style: solid;
+  color: #fff;
+}
+
 /* ─── SECTION HEADINGS ──────────────────────── */
 
 .section-heading {

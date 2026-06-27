@@ -120,11 +120,11 @@ test("buildDashboardMetrics converts GA4 report and realtime responses to displa
   );
 
   assert.deepEqual(metrics, [
-    { label: "Sessions", value: "1,234" },
-    { label: "Users", value: "987" },
-    { label: "Views", value: "4,567" },
-    { label: "Events", value: "321" },
-    { label: "Live", value: "12" }
+    { label: "Sessions", value: "1,234", delta: null },
+    { label: "Users",    value: "987",   delta: null },
+    { label: "Views",    value: "4,567", delta: null },
+    { label: "Events",   value: "321",   delta: null },
+    { label: "Live",     value: "12",    delta: null }
   ]);
 });
 
@@ -132,11 +132,11 @@ test("buildDashboardMetrics uses zeroes for missing API rows", () => {
   const metrics = buildDashboardMetrics({}, {});
 
   assert.deepEqual(metrics, [
-    { label: "Sessions", value: "0" },
-    { label: "Users", value: "0" },
-    { label: "Views", value: "0" },
-    { label: "Events", value: "0" },
-    { label: "Live", value: "0" }
+    { label: "Sessions", value: "0", delta: null },
+    { label: "Users",    value: "0", delta: null },
+    { label: "Views",    value: "0", delta: null },
+    { label: "Events",   value: "0", delta: null },
+    { label: "Live",     value: "0", delta: null }
   ]);
 });
 
