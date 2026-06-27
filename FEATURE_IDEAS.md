@@ -241,7 +241,7 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
   - Realtime data is labeled separately.
   - Stale data states are explained rather than silently shown.
 
-### Dark mode / system theme support
+### Dark mode / system theme support [DO NOT IMPLEMENT or SAVE TILL EVERYTHING ELSE IS DONE]
 
 - **Idea:** Honor `prefers-color-scheme: dark` so the extension matches the browser and OS theme.
 - **Why:** The extension is currently light-only. Many developers and power users run dark mode and the white popup is jarring.

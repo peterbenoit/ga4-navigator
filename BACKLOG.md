@@ -130,7 +130,7 @@
   - Storage schema is versioned so future fields can be added without breaking existing saves.
   - Documentation or a comment explains what `id` represents (the `properties/XXXXXXXXX` numeric ID).
 
-### Dark mode CSS token support
+### Dark mode CSS token support [DO NOT IMPLEMENT until EVERYTHING ELSE IS DONE]
 
 - **Why:** The extension is light-theme only. Adding a `prefers-color-scheme: dark` override of the CSS custom properties is lower-cost now than retrofitting it after many more components are added.
 - **Where:** `popup.css`
