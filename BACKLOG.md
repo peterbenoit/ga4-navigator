@@ -39,6 +39,24 @@
   - Duplicate property IDs are rejected or merged predictably.
   - Saved imported objects contain only the expected `label` and `id` fields.
 
+### Add GA4 Data API quota / rate-limit handling
+
+- **Why:** The GA4 Data API enforces per-property and per-project quotas. The extension has no backoff, retry, or quota-awareness. A 429 response currently surfaces as a generic error.
+- **Where:** `popup.js`
+- **Acceptance criteria:**
+  - 429 responses surface a clear "rate limit reached" message rather than a generic API error.
+  - Requests are not retried immediately on 429; a minimum backoff window is enforced.
+  - Health check and metrics requests do not stack if the popup is closed and reopened quickly.
+
+### Handle network offline / no-connection state
+
+- **Why:** Metrics and health checks fail silently when the user is offline. No distinct offline state is shown, which looks like a tracking problem.
+- **Where:** `popup.js`, `popup.html`
+- **Acceptance criteria:**
+  - Extension detects offline state via `navigator.onLine` or a failed fetch.
+  - A clear "no connection" message appears instead of a spinning or empty metrics bar.
+  - When connectivity returns the user can refresh without reloading the popup.
+
 ## Priority 2: Improvements
 
 ### Move property storage from `localStorage` to `chrome.storage`
@@ -96,6 +114,31 @@
   - Generated GA4 links include `rel="noopener noreferrer"`.
   - Link behavior remains unchanged for users.
 
+### Debounce API calls on rapid property switching
+
+- **Why:** Switching properties quickly fires multiple overlapping `fetchMetrics` and `runHealthCheck` calls. The sequence ID pattern in `runHealthCheck` is not applied to `fetchMetrics`, so stale metric responses can still overwrite the UI.
+- **Where:** `popup.js`
+- **Acceptance criteria:**
+  - Property switch cancels or ignores any in-flight metric requests for the previous property.
+  - A minimum 150ms debounce prevents a burst of requests when scrolling through the property select.
+
+### Distinguish GA4 account from property in storage
+
+- **Why:** The saved property object stores only `label` and `id`. There is no account ID, account name, or data stream ID. This limits future features (account grouping, multi-stream properties) and makes debugging auth issues harder.
+- **Where:** `popup.js`, `shortcut-utils.js`
+- **Acceptance criteria:**
+  - Storage schema is versioned so future fields can be added without breaking existing saves.
+  - Documentation or a comment explains what `id` represents (the `properties/XXXXXXXXX` numeric ID).
+
+### Dark mode CSS token support
+
+- **Why:** The extension is light-theme only. Adding a `prefers-color-scheme: dark` override of the CSS custom properties is lower-cost now than retrofitting it after many more components are added.
+- **Where:** `popup.css`
+- **Acceptance criteria:**
+  - A `@media (prefers-color-scheme: dark)` block overrides color tokens only.
+  - All text/background combinations meet 4.5:1 WCAG AA contrast in dark mode.
+  - Layout and spacing are unchanged.
+
 ## Priority 3: Maintenance
 
 ### Add a README with setup and OAuth configuration
@@ -124,6 +167,15 @@
   - Styles move to a dedicated CSS file if allowed by extension packaging.
   - Popup logic is grouped into small modules or clearly separated sections.
   - Existing behavior is preserved after the split.
+
+### Declare all required extension icon sizes
+
+- **Why:** `manifest.json` does not currently declare `icons` at 16, 32, 48, and 128px. Chrome Web Store requires these for listing, and missing sizes degrade the extension icon in the toolbar and OS app menus.
+- **Where:** `manifest.json`, icon assets
+- **Acceptance criteria:**
+  - Manifest declares icons at 16, 32, 48, and 128px.
+  - All sizes exist as actual files; no broken references.
+  - Icon assets use a consistent style that matches the popup branding.
 
 ### Add release packaging checks
 

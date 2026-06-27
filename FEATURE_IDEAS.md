@@ -205,6 +205,59 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
   - The wizard validates property access before finishing.
   - Users can skip setup and import JSON if they already have saved settings.
 
+### Property tags and grouping
+
+- **Idea:** Let users tag saved properties (e.g., "client", "staging", "personal") and filter the dropdown by tag.
+- **Why:** Once you have more than 5 properties the flat list becomes hard to scan. Tags add organization without requiring a folder hierarchy.
+- **Starter acceptance criteria:**
+  - User can assign one or more tags to a property in the manage view.
+  - Dropdown can filter to a tag.
+  - Tags export and import with property data.
+
+### Channel grouping snapshot
+
+- **Idea:** Add a compact default channel group breakdown — Organic Search, Direct, Paid Search, Referral, etc. — for the selected date range.
+- **Why:** The most common "what drove traffic today" question that GA4 buries three clicks deep.
+- **Starter acceptance criteria:**
+  - Channels show sessions and a percent-of-total bar.
+  - Unknown/Unassigned traffic is surfaced rather than hidden.
+  - Row click opens the GA4 acquisition report filtered to that channel.
+
+### Engagement metrics spotlight
+
+- **Idea:** Surface engagement rate and average session duration prominently since GA4 deprecated bounce rate.
+- **Why:** Most users have not fully adjusted to GA4's engagement model and still look for bounce rate equivalents. Showing the GA4 equivalents in context reduces confusion.
+- **Starter acceptance criteria:**
+  - Engagement rate, avg. session duration, and engaged sessions appear as dashboard cards.
+  - Tooltip or label explains the metric in plain English.
+  - Cards link to the engagement report for the selected property.
+
+### Data freshness indicator
+
+- **Idea:** Show how recent the GA4 data is — GA4 data latency ranges from 30 minutes to 72 hours depending on report type.
+- **Why:** Users frequently mistake data latency for a tracking problem. A simple "data as of ~2h ago" label prevents false alarms.
+- **Starter acceptance criteria:**
+  - Standard reports show approximate data latency from the API response metadata.
+  - Realtime data is labeled separately.
+  - Stale data states are explained rather than silently shown.
+
+### Dark mode / system theme support
+
+- **Idea:** Honor `prefers-color-scheme: dark` so the extension matches the browser and OS theme.
+- **Why:** The extension is currently light-only. Many developers and power users run dark mode and the white popup is jarring.
+- **Starter acceptance criteria:**
+  - A `@media (prefers-color-scheme: dark)` block overrides CSS tokens.
+  - All text/background/border combos meet 4.5:1 contrast in dark mode.
+  - Theme switch does not cause layout shifts.
+
+### Quick-launch GA4 Explorations
+
+- **Idea:** Add shortcut buttons to create new Explorations (free form, funnel, path, segment overlap) in GA4 for the selected property.
+- **Why:** Explorations are one of GA4's most powerful features but are not surfaced in the default GA4 navigation; users forget they exist.
+- **Starter acceptance criteria:**
+  - Buttons open the correct GA4 Exploration type for the selected property.
+  - Exploration links are not shown when no property is selected.
+
 ## Larger / Later Ideas
 
 ### Page-specific GA4 context
@@ -234,6 +287,18 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
   - Map Search Console site resources to GA4 properties explicitly instead of assuming their identifiers match.
   - Show top queries, query-to-page mappings, low-CTR opportunities, and queries near page one.
   - Keep Search Console authentication and request failures isolated from GA4 dashboard data.
+
+### GA4 account and property hierarchy
+
+- **Idea:** Distinguish GA4 accounts from properties. One Google Analytics account can own multiple GA4 properties.
+- **Why:** The current model stores a flat list of property IDs with no account grouping, which breaks down for agency use across many clients.
+- **Notes:** Would require the Analytics Admin API to enumerate account/property relationships rather than just accepting pasted IDs.
+
+### Attribution model indicator
+
+- **Idea:** Show which attribution model is active for the selected property and link to the attribution settings screen.
+- **Why:** Data-driven vs last-click attribution produces meaningfully different conversion numbers. Users are often unaware what model their GA4 property uses.
+- **Notes:** Attribution settings are account-level in GA4; the extension would display info only, not allow changes.
 
 ### AI-assisted metric summaries
 
