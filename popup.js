@@ -31,6 +31,7 @@ const TOP_INSIGHT_TYPES = ["pages", "sources", "campaigns", "events"];
 let metricsRequestSequence = 0;
 let healthRequestSequence = 0;
 let selectedTopInsightType = "pages";
+let propertySelectTimer = null;
 
 // --- Storage ---
 
@@ -345,6 +346,11 @@ async function fetchMetrics(propertyId) {
   clearTopInsights();
   if (!propertyId) { el.textContent = ""; return; }
 
+  if (!navigator.onLine) {
+    el.innerHTML = `<span class="metric-hint">No connection</span>`;
+    return;
+  }
+
   const numericId = getNumericId(propertyId);
   if (!numericId) return;
 
@@ -438,6 +444,7 @@ function isAuthApiError(err) {
 }
 
 function getMetricsFailureMessage(err) {
+  if (err?.status === 429) return "Rate limit reached. Try again in a moment.";
   if (err?.status === 401) return "Auth expired. Connect Google again.";
   if (err?.status === 403) return "Analytics permission denied.";
   if (err?.source === "realtime") return "Realtime metrics unavailable.";
@@ -702,6 +709,12 @@ async function runHealthCheck(propertyId) {
     status.textContent = "Select a valid property first.";
     return;
   }
+  if (!navigator.onLine) {
+    status.textContent = "No connection. Check your network.";
+    button.disabled = false;
+    button.textContent = "Run Check";
+    return;
+  }
   if (typeof chrome === "undefined" || !chrome.identity) {
     status.textContent = "Health check requires the installed extension.";
     return;
@@ -735,7 +748,8 @@ async function runHealthCheck(propertyId) {
     status.textContent = `${findings.length} checks complete`;
   } catch (error) {
     if (requestId !== healthRequestSequence) return;
-    if (error?.status === 403) status.textContent = "Analytics permission denied.";
+    if (error?.status === 429) status.textContent = "Rate limit reached. Try again in a moment.";
+    else if (error?.status === 403) status.textContent = "Analytics permission denied.";
     else if (error?.status === 401) status.textContent = "Google authentication expired.";
     else status.textContent = "Health check unavailable.";
   } finally {
@@ -801,7 +815,8 @@ function showMain() {
       saveSelectedIndex(i);
       updateLinks(properties[i]?.id || "");
       clearHealthCheck();
-      fetchMetrics(properties[i]?.id || "");
+      clearTimeout(propertySelectTimer);
+      propertySelectTimer = setTimeout(() => fetchMetrics(properties[i]?.id || ""), 150);
     };
   }
 
@@ -887,10 +902,15 @@ function renderManageList() {
     copyBtn.textContent = "📋";
     copyBtn.title = "Copy property ID";
     copyBtn.onclick = () => {
-      navigator.clipboard.writeText(p.id).then(() => {
-        copyBtn.textContent = "✅";
-        setTimeout(() => { copyBtn.textContent = "📋"; }, 1500);
-      });
+      navigator.clipboard.writeText(p.id)
+        .then(() => {
+          copyBtn.textContent = "✅";
+          setTimeout(() => { copyBtn.textContent = "📋"; }, 1500);
+        })
+        .catch(() => {
+          copyBtn.textContent = "✗";
+          setTimeout(() => { copyBtn.textContent = "📋"; }, 1500);
+        });
     };
 
     const deleteBtn = document.createElement("button");
@@ -1034,10 +1054,15 @@ function renderShortcutManageList() {
     copyBtn.title = "Copy GA4 URL";
     copyBtn.onclick = () => {
       const url = buildHref(shortcut.propertyId, shortcut.path, getDateRange());
-      navigator.clipboard.writeText(url).then(() => {
-        copyBtn.textContent = "✅";
-        setTimeout(() => { copyBtn.textContent = "📋"; }, 1500);
-      });
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          copyBtn.textContent = "✅";
+          setTimeout(() => { copyBtn.textContent = "📋"; }, 1500);
+        })
+        .catch(() => {
+          copyBtn.textContent = "✗";
+          setTimeout(() => { copyBtn.textContent = "📋"; }, 1500);
+        });
     };
 
     const deleteBtn = document.createElement("button");
@@ -1098,12 +1123,20 @@ function exportProperties() {
     properties: getProperties(),
     shortcuts: getShortcuts()
   }, null, 2);
-  navigator.clipboard.writeText(json).then(() => {
-    const btn = document.getElementById("btn-export");
-    const orig = btn.textContent;
-    btn.textContent = "✅ Copied!";
-    setTimeout(() => { btn.textContent = orig; }, 1500);
-  });
+  const btn = document.getElementById("btn-export");
+  const orig = btn.textContent;
+  navigator.clipboard.writeText(json)
+    .then(() => {
+      btn.textContent = "✅ Copied!";
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    })
+    .catch(() => {
+      const input = document.getElementById("import-input");
+      input.value = json;
+      document.getElementById("import-row").style.display = "block";
+      btn.textContent = "↓ See below";
+      setTimeout(() => { btn.textContent = orig; }, 2500);
+    });
 }
 
 async function importProperties() {
@@ -1198,4 +1231,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   document.getElementById("btn-import-apply").onclick = importProperties;
+
+  window.addEventListener("offline", () => {
+    const el = document.getElementById("metrics-bar");
+    if (el) el.innerHTML = `<span class="metric-hint">No connection</span>`;
+  });
+
+  window.addEventListener("online", () => {
+    const property = getProperties()[getSelectedIndex()];
+    if (property) fetchMetrics(property.id);
+  });
 });
