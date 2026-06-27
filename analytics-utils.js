@@ -75,9 +75,9 @@
     };
   }
 
-  function buildOverviewRequest(dateRange) {
+  function buildOverviewRequest(dateRange, explicitRange) {
     return {
-      dateRanges: [getApiDateRange(dateRange)],
+      dateRanges: [explicitRange || getApiDateRange(dateRange)],
       metrics: [
         { name: "sessions" },
         { name: "totalUsers" },
@@ -272,14 +272,24 @@
     return findings.sort((a, b) => severityRank[a.severity] - severityRank[b.severity]);
   }
 
-  function buildDashboardMetrics(report, realtime) {
-    return [
-      { label: "Sessions", value: formatMetricValue(getMetric(report, 0)) },
-      { label: "Users", value: formatMetricValue(getMetric(report, 1)) },
-      { label: "Views", value: formatMetricValue(getMetric(report, 2)) },
-      { label: "Events", value: formatMetricValue(getMetric(report, 3)) },
-      { label: "Live", value: formatMetricValue(getMetric(realtime, 0)) }
+  function buildDashboardMetrics(report, realtime, previousReport) {
+    const METRIC_DEFS = [
+      { label: "Sessions", index: 0 },
+      { label: "Users",    index: 1 },
+      { label: "Views",    index: 2 },
+      { label: "Events",   index: 3 }
     ];
+
+    const metrics = METRIC_DEFS.map(({ label, index }) => {
+      const current = getMetric(report, index);
+      const delta = previousReport
+        ? calculateMetricDelta(current, getMetric(previousReport, index))
+        : null;
+      return { label, value: formatMetricValue(current), delta };
+    });
+
+    metrics.push({ label: "Live", value: formatMetricValue(getMetric(realtime, 0)), delta: null });
+    return metrics;
   }
 
   const api = {

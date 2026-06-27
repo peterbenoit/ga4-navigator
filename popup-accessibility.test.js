@@ -76,9 +76,10 @@ test("date range buttons expose their selected state", () => {
   assert.deepEqual(
     datePills.children.map(button => [button.textContent, button.type, button.getAttribute("aria-pressed")]),
     [
-      ["7d", "button", "false"],
-      ["28d", "button", "true"],
-      ["90d", "button", "false"]
+      ["7d",     "button", "false"],
+      ["28d",    "button", "true"],
+      ["90d",    "button", "false"],
+      ["vs prev","button", "false"]
     ]
   );
 });
