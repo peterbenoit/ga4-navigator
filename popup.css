@@ -213,6 +213,8 @@ a { color: inherit; text-decoration: none; }
 .tab {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex: 1;
   height: 38px;
   background: transparent;
   border: none;
@@ -222,7 +224,7 @@ a { color: inherit; text-decoration: none; }
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  padding: 0 14px;
+  padding: 0 8px;
   transition: color 0.1s, border-color 0.1s;
   white-space: nowrap;
 }
@@ -239,6 +241,82 @@ a { color: inherit; text-decoration: none; }
 
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
+
+/* ─── ANALYSIS ──────────────────────────────── */
+
+.analysis-panel {
+  margin: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.analysis-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.analysis-header h2 {
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.analysis-header p,
+.analysis-status {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.analysis-header p { margin-top: 3px; }
+
+.analysis-status {
+  min-height: 32px;
+  padding: 8px 16px;
+}
+
+.analysis-table-wrap { overflow-x: auto; }
+
+.analysis-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.analysis-table th,
+.analysis-table td {
+  padding: 9px 8px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  text-align: right;
+  vertical-align: top;
+}
+
+.analysis-table th {
+  color: var(--text-dim);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.analysis-table th:first-child,
+.analysis-table td:first-child {
+  width: 43%;
+  padding-left: 16px;
+  text-align: left;
+}
+
+.analysis-table th:last-child,
+.analysis-table td:last-child { padding-right: 16px; }
+
+.analysis-table td:first-child a {
+  color: var(--blue);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.analysis-table td:first-child a:hover { text-decoration: underline; }
 
 /* ─── CONTROLS ROW ──────────────────────────── */
 

@@ -427,3 +427,41 @@ test("runHealthCheck loads a batch report and renders actionable findings", asyn
   assert.match(findings[0].href, /reports\/realtime\/overview/);
   assert.equal(context.document.getElementById("health-status").textContent, "4 checks complete");
 });
+
+test("loadLandingPages requests and renders landing page performance", async () => {
+  const requests = [];
+  const context = loadPopup({
+    chrome: {
+      runtime: { lastError: null },
+      identity: {
+        getAuthToken({ interactive }, callback) {
+          assert.equal(interactive, false);
+          callback("cached-token");
+        },
+        removeCachedAuthToken() {
+          assert.fail("successful requests should not clear the cached token");
+        }
+      }
+    },
+    async fetch(url, options) {
+      requests.push({ url, options });
+      return jsonResponse(200, {
+        rows: [{
+          dimensionValues: [{ value: "/services" }],
+          metricValues: [{ value: "120" }, { value: "0.625" }, { value: "0.375" }]
+        }]
+      });
+    }
+  });
+
+  await context.loadLandingPages("a356198589p490540007");
+
+  assert.equal(requests.length, 1);
+  assert.match(requests[0].url, /properties\/490540007:runReport$/);
+  assert.deepEqual(JSON.parse(requests[0].options.body), GA4AnalyticsUtils.buildLandingPagesRequest("last28days"));
+  const row = context.document.getElementById("landing-pages-body").children[0];
+  assert.equal(row.children[0].children[0].textContent, "/services");
+  assert.match(row.children[0].children[0].href, /analytics\.google\.com/);
+  assert.deepEqual(row.children.slice(1).map(cell => cell.textContent), ["120", "62.5%", "37.5%"]);
+  assert.equal(context.document.getElementById("landing-pages-status").textContent, "Showing 1 landing page");
+});

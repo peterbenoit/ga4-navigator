@@ -5,6 +5,7 @@ const vm = require("node:vm");
 
 const html = fs.readFileSync("popup.html", "utf8");
 const popup = fs.readFileSync("popup.js", "utf8");
+const tabs = fs.readFileSync("tabs.js", "utf8");
 
 test("popup form controls have programmatic labels", () => {
   assert.match(html, /<label\b[^>]*\bfor="propertySelect"[^>]*>\s*Property\s*<\/label>/);
@@ -23,6 +24,14 @@ test("form error containers are announced as live status messages", () => {
   assert.match(html, /<div id="add-error"[^>]*role="status"[^>]*aria-live="polite"/);
   assert.match(html, /<div id="shortcut-error"[^>]*role="status"[^>]*aria-live="polite"/);
   assert.match(html, /<div id="import-error"[^>]*role="status"[^>]*aria-live="polite"/);
+});
+
+test("analysis tab exposes a labeled landing page panel", () => {
+  assert.match(html, /<button[^>]*id="tab-analysis-button"[^>]*aria-controls="tab-analysis"[^>]*data-tab="analysis"/);
+  assert.match(html, /<div[^>]*id="tab-analysis"[^>]*role="tabpanel"[^>]*aria-labelledby="tab-analysis-button"/);
+  assert.match(html, /<section[^>]*aria-labelledby="landing-pages-heading"/);
+  assert.match(html, /<div[^>]*id="landing-pages-status"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(tabs, /new CustomEvent\("ga4-tab-change", \{ detail: \{ tab: target \} \}\)/);
 });
 
 function createElement(id) {

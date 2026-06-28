@@ -11,6 +11,8 @@ const {
   getTopInsightConfig,
   buildTopInsightRequest,
   buildTopInsightRows,
+  buildLandingPagesRequest,
+  buildLandingPageRows,
   buildHealthCheckRequest,
   buildHealthFindings
 } = require("./analytics-utils");
@@ -186,6 +188,39 @@ test("buildTopInsightRows converts GA4 rows to ranked display rows", () => {
 
 test("buildTopInsightRows returns an empty list when GA4 has no rows", () => {
   assert.deepEqual(buildTopInsightRows({}, getTopInsightConfig("sources")), []);
+});
+
+test("buildLandingPagesRequest requests landing performance ordered by sessions", () => {
+  assert.deepEqual(buildLandingPagesRequest("last28days"), {
+    dateRanges: [{ startDate: "28daysAgo", endDate: "today" }],
+    dimensions: [{ name: "landingPagePlusQueryString" }],
+    metrics: [
+      { name: "sessions" },
+      { name: "engagementRate" },
+      { name: "bounceRate" }
+    ],
+    orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+    limit: 10
+  });
+});
+
+test("buildLandingPageRows normalizes counts, rates, and missing data", () => {
+  assert.deepEqual(buildLandingPageRows({
+    rows: [
+      {
+        dimensionValues: [{ value: " /services?ref=home " }],
+        metricValues: [{ value: "1234" }, { value: "0.625" }, { value: "0.375" }]
+      },
+      {
+        dimensionValues: [],
+        metricValues: [{ value: "bad" }, { value: "bad" }]
+      }
+    ]
+  }), [
+    { path: "/services?ref=home", sessions: "1,234", engagementRate: "62.5%", bounceRate: "37.5%" },
+    { path: "(not set)", sessions: "0", engagementRate: "0.0%", bounceRate: "0.0%" }
+  ]);
+  assert.deepEqual(buildLandingPageRows({}), []);
 });
 
 test("buildHealthCheckRequest requests today and two complete seven-day periods", () => {

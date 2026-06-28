@@ -27,12 +27,16 @@ const DATE_RANGES = [
 ];
 
 const TOP_INSIGHT_TYPES = ["pages", "sources", "campaigns", "events"];
+const LANDING_PAGES_PATH = "/reports/explorer?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-landing-pages-v2,lifecycle,engagement&r=life-cycle-engagement-landing-pages-v2";
 
 let metricsRequestSequence = 0;
 let healthRequestSequence = 0;
+let landingRequestSequence = 0;
 let selectedTopInsightType = "pages";
 let propertySelectTimer = null;
 let compareMode = false;
+let activeMainTab = "dashboard";
+let landingPagesStale = true;
 
 // --- Storage ---
 
@@ -328,6 +332,10 @@ function renderDatePills() {
       renderShortcuts();
       renderRecentReports();
       fetchMetrics(props[getSelectedIndex()]?.id || "");
+      landingPagesStale = true;
+      if (activeMainTab === "analysis") {
+        loadLandingPages(props[getSelectedIndex()]?.id || "");
+      }
       renderDatePills();
     };
     container.appendChild(btn);
@@ -666,6 +674,126 @@ async function loadTopInsights(numericId, propertyId, token, dateRange, requestI
   }
 }
 
+// --- Landing page analysis ---
+
+function renderLandingPageRows(rows, propertyId) {
+  const body = document.getElementById("landing-pages-body");
+  body.innerHTML = "";
+
+  rows.forEach(row => {
+    const tr = document.createElement("tr");
+    const pathCell = document.createElement("td");
+    const link = document.createElement("a");
+    link.href = buildHref(propertyId, LANDING_PAGES_PATH, getDateRange());
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = row.path;
+    link.setAttribute("aria-label", `Open GA4 landing page report for ${row.path}`);
+    link.onclick = () => recordRecentReport({
+      label: `Landing page: ${row.path}`,
+      propertyId,
+      path: LANDING_PAGES_PATH
+    });
+    pathCell.appendChild(link);
+    tr.appendChild(pathCell);
+
+    [row.sessions, row.engagementRate, row.bounceRate].forEach(value => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      tr.appendChild(cell);
+    });
+
+    body.appendChild(tr);
+  });
+}
+
+async function fetchLandingPageReport(numericId, token, dateRange) {
+  const response = await fetch(`${GA4_API}${numericId}:runReport`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(GA4AnalyticsUtils.buildLandingPagesRequest(dateRange))
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    const error = new Error(body.error?.message || "Landing page API error");
+    error.status = response.status;
+    throw error;
+  }
+  return body;
+}
+
+function showLandingConnect(propertyId, requestId) {
+  const status = document.getElementById("landing-pages-status");
+  status.innerHTML = "";
+  const button = document.createElement("button");
+  button.className = "metric-connect";
+  button.type = "button";
+  button.textContent = "Connect Google →";
+  button.addEventListener("click", () => {
+    if (requestId === landingRequestSequence) loadLandingPages(propertyId, true);
+  });
+  status.appendChild(button);
+}
+
+async function loadLandingPages(propertyId, interactive = false) {
+  const requestId = ++landingRequestSequence;
+  const status = document.getElementById("landing-pages-status");
+  const body = document.getElementById("landing-pages-body");
+  body.innerHTML = "";
+
+  const numericId = getNumericId(propertyId || "");
+  if (!numericId) {
+    status.textContent = "Add or select a property to view landing pages.";
+    return;
+  }
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    status.textContent = "No connection. Check your network.";
+    return;
+  }
+  if (typeof chrome === "undefined" || !chrome.identity) {
+    status.textContent = "Landing page analysis requires the installed extension.";
+    return;
+  }
+
+  status.textContent = "Loading landing pages...";
+
+  let token;
+  try {
+    token = await getIdentityToken(interactive);
+  } catch {
+    if (requestId !== landingRequestSequence) return;
+    if (!interactive) showLandingConnect(propertyId, requestId);
+    else status.textContent = "Google authentication failed.";
+    return;
+  }
+
+  try {
+    let report;
+    try {
+      report = await fetchLandingPageReport(numericId, token, getDateRange());
+    } catch (error) {
+      if (!isAuthApiError(error)) throw error;
+      await removeIdentityToken(token);
+      token = await getIdentityToken(true);
+      report = await fetchLandingPageReport(numericId, token, getDateRange());
+    }
+
+    if (requestId !== landingRequestSequence) return;
+    const rows = GA4AnalyticsUtils.buildLandingPageRows(report);
+    renderLandingPageRows(rows, propertyId);
+    status.textContent = rows.length
+      ? `Showing ${rows.length} landing page${rows.length === 1 ? "" : "s"}`
+      : "No landing pages found for this date range.";
+    landingPagesStale = false;
+  } catch (error) {
+    if (requestId !== landingRequestSequence) return;
+    if (error?.status === 429) status.textContent = "Rate limit reached. Try again in a moment.";
+    else if (error?.status === 403) status.textContent = "Analytics permission denied.";
+    else if (error?.status === 401) status.textContent = "Google authentication expired.";
+    else status.textContent = "Landing page analysis unavailable.";
+  }
+}
+
 // --- GA4 health check ---
 
 function clearHealthCheck() {
@@ -843,6 +971,8 @@ function showMain() {
     document.getElementById("metrics-bar").textContent = "";
     clearDashboard();
     clearHealthCheck();
+    landingPagesStale = true;
+    if (activeMainTab === "analysis") loadLandingPages("");
   } else {
     setMainEmptyState(false);
     properties.forEach((p, i) => {
@@ -857,14 +987,21 @@ function showMain() {
     updateLinks(properties[idx]?.id || "");
     clearHealthCheck();
     fetchMetrics(properties[idx]?.id || "");
+    if (activeMainTab === "analysis" && landingPagesStale) {
+      loadLandingPages(properties[idx]?.id || "");
+    }
 
     select.onchange = () => {
       const i = parseInt(select.value);
       saveSelectedIndex(i);
       updateLinks(properties[i]?.id || "");
       clearHealthCheck();
+      landingPagesStale = true;
       clearTimeout(propertySelectTimer);
-      propertySelectTimer = setTimeout(() => fetchMetrics(properties[i]?.id || ""), 150);
+      propertySelectTimer = setTimeout(() => {
+        fetchMetrics(properties[i]?.id || "");
+        if (activeMainTab === "analysis") loadLandingPages(properties[i]?.id || "");
+      }, 150);
     };
   }
 
@@ -1280,13 +1417,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("btn-import-apply").onclick = importProperties;
 
+  document.addEventListener("ga4-tab-change", event => {
+    activeMainTab = event.detail?.tab || "dashboard";
+    if (activeMainTab !== "analysis") return;
+    const property = getProperties()[getSelectedIndex()];
+    if (landingPagesStale) loadLandingPages(property?.id || "");
+  });
+
   window.addEventListener("offline", () => {
     const el = document.getElementById("metrics-bar");
     if (el) el.innerHTML = `<span class="metric-hint">No connection</span>`;
+    if (activeMainTab === "analysis") {
+      document.getElementById("landing-pages-status").textContent = "No connection. Check your network.";
+    }
   });
 
   window.addEventListener("online", () => {
     const property = getProperties()[getSelectedIndex()];
     if (property) fetchMetrics(property.id);
+    if (activeMainTab === "analysis") loadLandingPages(property?.id || "");
   });
 });

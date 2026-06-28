@@ -162,6 +162,39 @@
     });
   }
 
+  function buildLandingPagesRequest(dateRange) {
+    return {
+      dateRanges: [getApiDateRange(dateRange)],
+      dimensions: [{ name: "landingPagePlusQueryString" }],
+      metrics: [
+        { name: "sessions" },
+        { name: "engagementRate" },
+        { name: "bounceRate" }
+      ],
+      orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+      limit: 10
+    };
+  }
+
+  function formatSafeCount(value) {
+    const number = Number(value);
+    return (Number.isFinite(number) ? number : 0).toLocaleString();
+  }
+
+  function formatRate(value) {
+    const number = Number(value);
+    return `${((Number.isFinite(number) ? number : 0) * 100).toFixed(1)}%`;
+  }
+
+  function buildLandingPageRows(report) {
+    return (report?.rows || []).map(row => ({
+      path: String(row.dimensionValues?.[0]?.value || "").trim() || "(not set)",
+      sessions: formatSafeCount(row.metricValues?.[0]?.value),
+      engagementRate: formatRate(row.metricValues?.[1]?.value),
+      bounceRate: formatRate(row.metricValues?.[2]?.value)
+    }));
+  }
+
   function buildHealthCheckRequest() {
     const sessions = [{ name: "sessions" }];
     return {
@@ -302,6 +335,8 @@
     getTopInsightConfig,
     buildTopInsightRequest,
     buildTopInsightRows,
+    buildLandingPagesRequest,
+    buildLandingPageRows,
     buildHealthCheckRequest,
     buildHealthFindings
   };

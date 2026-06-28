@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
         p.classList.toggle("active", p.id === "tab-" + target);
       });
 
+      document.dispatchEvent(new CustomEvent("ga4-tab-change", { detail: { tab: target } }));
+
       if (target === "favorites" && typeof renderShortcuts === "function") {
         renderShortcuts();
         renderRecentReports();

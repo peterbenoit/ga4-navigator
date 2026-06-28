@@ -26,6 +26,7 @@
 
     <nav class="tab-bar" role="tablist" aria-label="Main navigation">
       <button class="tab active" role="tab" aria-selected="true"  aria-controls="tab-dashboard"  data-tab="dashboard">Dashboard</button>
+      <button class="tab" id="tab-analysis-button" role="tab" aria-selected="false" aria-controls="tab-analysis" data-tab="analysis">Analysis</button>
       <button class="tab"        role="tab" aria-selected="false" aria-controls="tab-reports"    data-tab="reports">Reports</button>
       <button class="tab"        role="tab" aria-selected="false" aria-controls="tab-favorites"  data-tab="favorites">Favorites</button>
     </nav>
@@ -65,6 +66,32 @@
         <p>Add your first GA4 property to see metrics and navigate your reports.</p>
         <button class="btn-primary" id="btn-empty-add" type="button">Add Property</button>
       </div>
+    </div>
+
+    <!-- TAB: ANALYSIS -->
+    <div id="tab-analysis" class="tab-panel" role="tabpanel" aria-labelledby="tab-analysis-button">
+      <section class="analysis-panel" aria-labelledby="landing-pages-heading">
+        <div class="analysis-header">
+          <div>
+            <h2 id="landing-pages-heading">Landing Pages</h2>
+            <p>Entry-page performance for the selected date range.</p>
+          </div>
+        </div>
+        <div id="landing-pages-status" class="analysis-status" role="status" aria-live="polite"></div>
+        <div class="analysis-table-wrap">
+          <table class="analysis-table">
+            <thead>
+              <tr>
+                <th scope="col">Landing page</th>
+                <th scope="col">Sessions</th>
+                <th scope="col">Engagement</th>
+                <th scope="col">Bounce</th>
+              </tr>
+            </thead>
+            <tbody id="landing-pages-body"></tbody>
+          </table>
+        </div>
+      </section>
     </div>
 
     <!-- TAB: REPORTS -->
