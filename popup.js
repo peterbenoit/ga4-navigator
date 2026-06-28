@@ -518,6 +518,141 @@ function renderDashboard(metrics) {
 
     grid.appendChild(card);
   });
+
+  resetAiDigest(metrics);
+}
+
+// --- AI Digest ---
+
+let lastDigestMetrics = null;
+
+function resetAiDigest(metrics) {
+  lastDigestMetrics = metrics;
+  const output = document.getElementById("ai-digest-output");
+  if (output) output.textContent = "";
+}
+
+function buildDigestPrompt(metrics, propertyLabel, dateRange) {
+  const DATE_LABELS = {
+    last7days:  "the last 7 days",
+    last28days: "the last 28 days",
+    last90days: "the last 90 days"
+  };
+  const period = DATE_LABELS[dateRange] || dateRange;
+
+  const lines = metrics
+    .filter(m => m.label !== "Live")
+    .map(m => {
+      let line = `${m.label}: ${m.value}`;
+      if (m.delta && m.delta.state !== "unavailable") {
+        if (m.delta.state === "unchanged") {
+          line += " (unchanged vs prior period)";
+        } else if (m.delta.state === "new") {
+          line += " (new activity, no prior period data)";
+        } else if (m.delta.percent !== null) {
+          const dir = m.delta.absolute > 0 ? "up" : "down";
+          line += ` (${dir} ${Math.abs(m.delta.percent)}% vs prior period)`;
+        }
+      }
+      return line;
+    });
+
+  const live = metrics.find(m => m.label === "Live");
+  if (live) lines.push(`Live users right now: ${live.value}`);
+
+  return `You are a concise analytics assistant. A user is reviewing GA4 metrics for "${propertyLabel}" over ${period}.
+
+Here are the current metrics:
+${lines.join("\n")}
+
+Write 2-3 plain English sentences summarizing what these numbers mean. Focus on the most notable changes or patterns. Be direct and specific. Do not use bullet points or headers.`;
+}
+
+let digestAbortController = null;
+
+async function generateAiDigest() {
+  const output = document.getElementById("ai-digest-output");
+  const btn = document.getElementById("btn-ai-digest");
+  if (!output || !btn) return;
+
+  // If already running, cancel it
+  if (digestAbortController) {
+    digestAbortController.abort();
+    digestAbortController = null;
+    btn.textContent = "Summarize";
+    output.className = "ai-digest-output error";
+    output.textContent = "Cancelled.";
+    return;
+  }
+
+  if (!lastDigestMetrics) return;
+
+  const props = getProperties();
+  const idx = getSelectedIndex();
+  const propertyLabel = props[idx]?.label || "this property";
+  const dateRange = getDateRange();
+
+  digestAbortController = new AbortController();
+  btn.textContent = "Cancel";
+  output.className = "ai-digest-output loading";
+  output.textContent = "Generating summary…";
+
+  try {
+    const langOptions = { expectedInputLanguages: ["en"], expectedOutputLanguages: ["en"] };
+    const availability = await LanguageModel.availability(langOptions);
+    if (availability === "unavailable") {
+      output.className = "ai-digest-output error";
+      output.textContent = "Chrome's built-in AI is not available on this device. It requires Chrome 138+, 22 GB free storage, and either a capable GPU or 16 GB RAM.";
+      return;
+    }
+
+    if (availability === "downloadable" || availability === "downloading") {
+      output.textContent = "Downloading AI model… this may take a moment. Click Cancel to stop.";
+    }
+
+    const session = await LanguageModel.create({
+      signal: digestAbortController.signal,
+      expectedInputLanguages: ["en"],
+      expectedOutputLanguages: ["en"],
+      monitor(m) {
+        m.addEventListener("downloadprogress", e => {
+          const pct = Math.round(e.loaded * 100);
+          output.textContent = `Downloading AI model: ${pct}%${pct < 100 ? " — Click Cancel to stop." : ""}`;
+        });
+      }
+    });
+
+    const prompt = buildDigestPrompt(lastDigestMetrics, propertyLabel, dateRange);
+    output.textContent = "";
+    output.className = "ai-digest-output";
+
+    const stream = session.promptStreaming(prompt, { signal: digestAbortController.signal });
+    for await (const chunk of stream) {
+      output.textContent = chunk;
+    }
+
+    session.destroy();
+  } catch (err) {
+    if (err.name === "AbortError") return;
+    output.className = "ai-digest-output error";
+    const isDownloadStall = err.message?.toLowerCase().includes("download");
+    output.textContent = isDownloadStall
+      ? "Model download stalled. Try again — Chrome will resume from where it left off. If it keeps stalling, check chrome://components and look for 'Optimization Guide On Device Model'."
+      : "Could not generate summary: " + (err.message || "unknown error");
+  } finally {
+    digestAbortController = null;
+    btn.textContent = "Summarize";
+  }
+}
+
+async function initAiDigest() {
+  if (!("LanguageModel" in self)) return;
+
+  const section = document.getElementById("ai-digest");
+  if (section) section.hidden = false;
+
+  const btn = document.getElementById("btn-ai-digest");
+  if (btn) btn.addEventListener("click", generateAiDigest);
 }
 
 async function loadMetrics(el, numericId, token, dateRange, requestId) {
@@ -1374,6 +1509,7 @@ async function importProperties() {
 document.addEventListener("DOMContentLoaded", async () => {
   await initStorage();
   renderReports();
+  initAiDigest();
   showMain();
 
   document.getElementById("btn-add").onclick      = showAdd;

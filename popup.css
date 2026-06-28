@@ -1263,6 +1263,79 @@ a {
 
 /* ─── RESPONSIVE ────────────────────────────── */
 
+/* AI Digest */
+.ai-digest {
+	margin: 4px 14px 14px;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+}
+
+.ai-digest-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 14px;
+	border-bottom: 1px solid var(--border);
+}
+
+.ai-digest h2 {
+	font-size: 11px;
+	font-weight: 700;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.07em;
+	margin: 0;
+}
+
+.ai-digest-btn {
+	height: 26px;
+	background: var(--surface);
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-sm);
+	color: var(--blue);
+	cursor: pointer;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 0 12px;
+	transition: background 0.1s;
+	white-space: nowrap;
+}
+
+.ai-digest-btn:hover {
+	background: var(--blue-light);
+}
+
+.ai-digest-btn:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.ai-digest-output {
+	padding: 12px 14px;
+	font-size: 13px;
+	line-height: 1.6;
+	color: var(--text);
+	min-height: 0;
+}
+
+.ai-digest-output:empty {
+	display: none;
+}
+
+.ai-digest-output.loading {
+	color: var(--text-dim);
+	font-style: italic;
+}
+
+.ai-digest-output.error {
+	color: var(--text-muted);
+	font-size: 12px;
+}
+
 @media (max-width: 440px) {
 	body {
 		min-width: 360px;
