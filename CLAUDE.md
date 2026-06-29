@@ -95,6 +95,24 @@ the Dashboard. Follow the existing tab pattern in `popup.html` and `tabs.js`. Em
 
 ---
 
+## GA4 report URL paths — known gotcha
+
+GA4's URL router requires `collectionId`, `ruid`, and `r` params for standard named reports.
+Without them GA4 silently falls back to the overview page.
+
+- **Do not** use bare paths like `/reports/events?params=_u..nav%3Dmaui` — they don't work.
+- **Do use** full paths with `collectionId`, `ruid`, and `r` copied from a real GA4 browser URL.
+- All shared report path constants live in `analytics-utils.js` (e.g. `TRAFFIC_ACQUISITION_PATH`, `EVENTS_REPORT_PATH`).
+  Add new ones there — never inline a bare path in `popup.js`.
+- `collectionId=life-cycle` is the baseline collection (present on all properties created before
+  March 2023 or set up with "Get baseline reports"). Use `life-cycle` paths as the default.
+  The `business-objectives` collection is only present on properties that selected a business
+  objective during setup — do not rely on it for links that must work across all properties.
+- **Realtime** is the one exception — `/reports/realtime/overview?params=_u..nav%3Dmaui`
+  works without a `collectionId` because realtime is not part of any collection.
+
+---
+
 ## Backlog and feature ideas
 
 - `BACKLOG.md` — concrete, scoped items ready to implement

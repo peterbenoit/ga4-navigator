@@ -120,14 +120,14 @@
 			dimension: "sessionCampaignName",
 			metric: "sessions",
 			metricLabel: "Sessions",
-			path: "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui"
+			path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-acquisition-traffic-acquisition,lifecycle,acquisition&r=life-cycle-acquisition-traffic-acquisition"
 		},
 		events: {
 			label: "Events",
 			dimension: "eventName",
 			metric: "eventCount",
 			metricLabel: "Events",
-			path: "/reports/events?params=_u..nav%3Dmaui"
+			path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-events,lifecycle,engagement&r=life-cycle-engagement-events"
 		}
 	};
 
@@ -169,7 +169,7 @@
 		"video_progress", "view_search_results", "form_start", "form_submit"
 	]);
 
-	const EVENTS_REPORT_PATH = "/reports/events?params=_u..nav%3Dmaui";
+	const EVENTS_REPORT_PATH = "/reports/explorer?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-events,lifecycle,engagement&r=life-cycle-engagement-events";
 
 	function buildTopEventsRequest(dateRange) {
 		return {
@@ -206,17 +206,7 @@
 		return { rows: eventRows, hasEnhancedEvent };
 	}
 
-	const CHANNEL_PATHS = {
-		"Organic Search": "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui%26_r..dimension-value%3D%7B%22dimensionName%22%3A%22sessionDefaultChannelGroup%22%2C%22value%22%3A%22Organic%20Search%22%7D",
-		"Direct": "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui%26_r..dimension-value%3D%7B%22dimensionName%22%3A%22sessionDefaultChannelGroup%22%2C%22value%22%3A%22Direct%22%7D",
-		"Referral": "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui%26_r..dimension-value%3D%7B%22dimensionName%22%3A%22sessionDefaultChannelGroup%22%2C%22value%22%3A%22Referral%22%7D",
-		"Organic Social": "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui%26_r..dimension-value%3D%7B%22dimensionName%22%3A%22sessionDefaultChannelGroup%22%2C%22value%22%3A%22Organic%20Social%22%7D",
-		"Paid Search": "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui%26_r..dimension-value%3D%7B%22dimensionName%22%3A%22sessionDefaultChannelGroup%22%2C%22value%22%3A%22Paid%20Search%22%7D",
-		"Email": "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui%26_r..dimension-value%3D%7B%22dimensionName%22%3A%22sessionDefaultChannelGroup%22%2C%22value%22%3A%22Email%22%7D",
-		"Unassigned": "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui%26_r..dimension-value%3D%7B%22dimensionName%22%3A%22sessionDefaultChannelGroup%22%2C%22value%22%3A%22Unassigned%22%7D"
-	};
-
-	const TRAFFIC_ACQUISITION_PATH = "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui";
+	const TRAFFIC_ACQUISITION_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-acquisition-traffic-acquisition,lifecycle,acquisition&r=life-cycle-acquisition-traffic-acquisition";
 
 	function buildTrafficSourceRequest(dateRange) {
 		return {
@@ -251,7 +241,7 @@
 				engagementRate: formatRate(engagementRate),
 				share: Math.round(share * 100),
 				flagUnassigned,
-				path: CHANNEL_PATHS[channel] || TRAFFIC_ACQUISITION_PATH
+				path: TRAFFIC_ACQUISITION_PATH
 			};
 		});
 	}
@@ -323,6 +313,7 @@
 		const keyEventsToday = getMetricNumber(today, 2);
 		const findings = [];
 
+		const realtimePath = "/reports/realtime/overview?params=_u..nav%3Dmaui";
 		if (sessionsToday === 0) {
 			const dailyAverage = Math.round(recent / 7);
 			findings.push({
@@ -332,7 +323,7 @@
 				detail: recent >= 35
 					? `This property averaged ${formatMetricValue(dailyAverage)} per day over the previous week.`
 					: "The property has no session activity today and only a limited recent baseline.",
-				path: "/reports/realtime/overview?params=_u..nav%3Dmaui&collectionId=business-objectives"
+				path: realtimePath
 			});
 		} else {
 			findings.push({
@@ -340,11 +331,11 @@
 				severity: "info",
 				title: "Session collection is active",
 				detail: `${formatMetricValue(sessionsToday)} sessions recorded today.`,
-				path: "/reports/realtime/overview?params=_u..nav%3Dmaui&collectionId=business-objectives"
+				path: realtimePath
 			});
 		}
 
-		const trafficPath = "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui";
+		const trafficPath = "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-acquisition-traffic-acquisition,lifecycle,acquisition&r=life-cycle-acquisition-traffic-acquisition";
 		if (previous === 0 && recent === 0) {
 			findings.push({
 				id: "traffic-trend",
@@ -382,7 +373,7 @@
 			detail: eventsToday === 0
 				? "GA4 has not recorded event activity for this property today."
 				: `${formatMetricValue(eventsToday)} events recorded today.`,
-			path: "/reports/events?params=_u..nav%3Dmaui"
+			path: EVENTS_REPORT_PATH
 		});
 
 		findings.push({
@@ -392,7 +383,7 @@
 			detail: keyEventsToday === 0
 				? "No key events have been recorded today; this does not prove none are configured."
 				: `${formatMetricValue(keyEventsToday)} key events recorded today.`,
-			path: "/reports/events?params=_u..nav%3Dmaui"
+			path: EVENTS_REPORT_PATH
 		});
 
 		const severityRank = { critical: 0, warning: 1, info: 2 };
