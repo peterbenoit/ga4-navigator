@@ -45,11 +45,11 @@ let landingPagesStale = true;
 // v2 — migrated to chrome.storage.local; added ga4_shortcuts, ga4_recent_reports
 //
 // Property objects: { label: string, id: string }
-//   id — the full GA4 route identifier copied from an analytics.google.com URL,
-//        e.g. "a356198589p490540007" where the segment after 'a' is the GA4
-//        account ID and the segment after 'p' is the GA4 property ID.
-//        Properties added via a property-only URL (no account segment) are
-//        stored as "p{propertyId}" (e.g. "p490540007").
+//   id — the full GA4 route identifier copied from an analytics.google.com URL.
+//        Format: "a{accountId}p{propertyId}" (e.g. "a111222333p444555666")
+//        where accountId is the GA4 account ID and propertyId is the GA4
+//        property ID. Properties added via a property-only URL omit the account
+//        segment and are stored as "p{propertyId}" (e.g. "p444555666").
 const SCHEMA_VERSION = 2;
 
 const STORAGE_DEFAULTS = {

@@ -24,16 +24,14 @@ Items are checked when fully implemented.
 
 ## Priority 2: Improvements
 
-- [ ] **Move property storage from `localStorage` to `chrome.storage`**
+- [x] **Move property storage from `localStorage` to `chrome.storage`**
   Storage helpers should be fully async using `chrome.storage.local`. Existing `localStorage` state should migrate once without data loss.
-  > Note: migration scaffolding exists in `initStorage()` but `localStorage` fallbacks are still in use.
 
-- [ ] **Replace the hard-coded default personal property with onboarding**
+- [x] **Replace the hard-coded default personal property with onboarding**
   New installs should start empty and prompt the user to add their first property.
 
-- [ ] **Improve accessibility of controls and forms**
+- [x] **Improve accessibility of controls and forms**
   Several labels are not programmatically associated with controls. Form errors need live region announcements.
-  > Note: `aria-pressed` and `aria-label` are partially in place; label/id pairs and error regions are still missing.
 
 - [x] **Add robust clipboard failure handling**
   Copy failures show a concise error state. Success states are not shown on write failure.
@@ -44,10 +42,10 @@ Items are checked when fully implemented.
 - [x] **Add target safety to external report links**
   Generated GA4 links include `rel="noopener noreferrer"`.
 
-- [ ] **Debounce API calls on rapid property switching**
+- [x] **Debounce API calls on rapid property switching**
   A minimum 150ms debounce should prevent a burst of requests when scrolling through the property select.
 
-- [ ] **Distinguish GA4 account from property in storage**
+- [x] **Distinguish GA4 account from property in storage**
   Storage schema should be versioned. Documentation should clarify what `id` represents.
 
 - [ ] **Dark mode CSS token support**
