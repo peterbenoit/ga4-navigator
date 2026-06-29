@@ -628,7 +628,7 @@ async function generateAiDigest() {
 
     const stream = session.promptStreaming(prompt, { signal: digestAbortController.signal });
     for await (const chunk of stream) {
-      output.textContent = chunk;
+      output.textContent += chunk;
     }
 
     session.destroy();
