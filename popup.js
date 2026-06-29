@@ -33,12 +33,14 @@ let metricsRequestSequence = 0;
 let healthRequestSequence = 0;
 let landingRequestSequence = 0;
 let trafficRequestSequence = 0;
+let eventsRequestSequence = 0;
 let selectedTopInsightType = "pages";
 let propertySelectTimer = null;
 let compareMode = false;
 let activeMainTab = "dashboard";
 let landingPagesStale = true;
 let trafficSourceStale = true;
+let topEventsStale = true;
 
 // --- Storage ---
 
@@ -349,9 +351,11 @@ function renderDatePills() {
 			fetchMetrics(props[getSelectedIndex()]?.id || "");
 			landingPagesStale = true;
 			trafficSourceStale = true;
+			topEventsStale = true;
 			if (activeMainTab === "analysis") {
 				loadLandingPages(props[getSelectedIndex()]?.id || "");
 				loadTrafficSources(props[getSelectedIndex()]?.id || "");
+				loadTopEvents(props[getSelectedIndex()]?.id || "");
 			}
 			renderDatePills();
 		};
@@ -955,6 +959,145 @@ async function loadTrafficSources(propertyId, interactive = false) {
 	}
 }
 
+// --- Top events ---
+
+function renderTopEventRows(rows, hasEnhancedEvent, propertyId) {
+	const body = document.getElementById("top-events-body");
+	const notice = document.getElementById("top-events-notice");
+	body.innerHTML = "";
+
+	if (!hasEnhancedEvent) {
+		notice.textContent = "No enhanced measurement events detected (scroll, file_download, click, etc.). Check GA4 Admin → Data Streams → Enhanced Measurement.";
+		notice.hidden = false;
+	} else {
+		notice.hidden = true;
+	}
+
+	rows.forEach(row => {
+		const tr = document.createElement("tr");
+		if (row.isEnhanced) tr.classList.add("event-row-enhanced");
+
+		const nameCell = document.createElement("td");
+		const link = document.createElement("a");
+		link.href = buildHref(propertyId, row.path, getDateRange());
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.textContent = row.name;
+		if (row.isEnhanced) {
+			const badge = document.createElement("span");
+			badge.className = "event-enhanced-badge";
+			badge.title = "Auto-collected by GA4 enhanced measurement";
+			badge.textContent = "auto";
+			link.appendChild(badge);
+		}
+		link.setAttribute("aria-label", `Open GA4 events report for ${row.name}`);
+		link.onclick = () => recordRecentReport({
+			label: `Event: ${row.name}`,
+			propertyId,
+			path: row.path
+		});
+		nameCell.appendChild(link);
+		tr.appendChild(nameCell);
+
+		[row.count, row.users].forEach(value => {
+			const cell = document.createElement("td");
+			cell.textContent = value;
+			tr.appendChild(cell);
+		});
+
+		body.appendChild(tr);
+	});
+}
+
+async function fetchTopEventsReport(numericId, token, dateRange) {
+	const response = await fetch(`${GA4_API}${numericId}:runReport`, {
+		method: "POST",
+		headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+		body: JSON.stringify(GA4AnalyticsUtils.buildTopEventsRequest(dateRange))
+	});
+	const body = await response.json();
+	if (!response.ok) {
+		const error = new Error(body.error?.message || "Events API error");
+		error.status = response.status;
+		throw error;
+	}
+	return body;
+}
+
+function showEventsConnect(propertyId, requestId) {
+	const status = document.getElementById("top-events-status");
+	status.innerHTML = "";
+	const button = document.createElement("button");
+	button.className = "metric-connect";
+	button.type = "button";
+	button.textContent = "Connect Google →";
+	button.addEventListener("click", () => {
+		if (requestId === eventsRequestSequence) loadTopEvents(propertyId, true);
+	});
+	status.appendChild(button);
+}
+
+async function loadTopEvents(propertyId, interactive = false) {
+	const requestId = ++eventsRequestSequence;
+	const status = document.getElementById("top-events-status");
+	const body = document.getElementById("top-events-body");
+	const notice = document.getElementById("top-events-notice");
+	body.innerHTML = "";
+	notice.hidden = true;
+
+	const numericId = getNumericId(propertyId || "");
+	if (!numericId) {
+		status.textContent = "Add or select a property to view top events.";
+		return;
+	}
+	if (typeof navigator !== "undefined" && !navigator.onLine) {
+		status.textContent = "No connection. Check your network.";
+		return;
+	}
+	if (typeof chrome === "undefined" || !chrome.identity) {
+		status.textContent = "Top events requires the installed extension.";
+		return;
+	}
+
+	status.textContent = "Loading events...";
+
+	let token;
+	try {
+		token = await getIdentityToken(interactive);
+	} catch {
+		if (requestId !== eventsRequestSequence) return;
+		if (!interactive) showEventsConnect(propertyId, requestId);
+		else status.textContent = "Google authentication failed.";
+		return;
+	}
+
+	try {
+		let report;
+		try {
+			report = await fetchTopEventsReport(numericId, token, getDateRange());
+		} catch (error) {
+			if (!isAuthApiError(error)) throw error;
+			await removeIdentityToken(token);
+			token = await getIdentityToken(true);
+			report = await fetchTopEventsReport(numericId, token, getDateRange());
+		}
+
+		if (requestId !== eventsRequestSequence) return;
+		const { rows, hasEnhancedEvent } = GA4AnalyticsUtils.buildTopEventRows(report);
+		renderTopEventRows(rows, hasEnhancedEvent, propertyId);
+		status.textContent = rows.length
+			? `Top ${rows.length} events · click any row to open in GA4`
+			: "No events found for this date range.";
+		topEventsStale = false;
+	} catch (error) {
+		if (requestId !== eventsRequestSequence) return;
+		if (error?.status === 429) status.textContent = "Rate limit reached. Try again in a moment.";
+		else if (error?.status === 403) status.textContent = "Analytics permission denied.";
+		else if (error?.status === 401) status.textContent = "Google authentication expired.";
+		else status.textContent = "Top events unavailable.";
+	}
+}
+
 // --- Landing page analysis ---
 
 function renderLandingPageRows(rows, propertyId) {
@@ -1279,12 +1422,14 @@ function showMain() {
 			clearHealthCheck();
 			landingPagesStale = true;
 			trafficSourceStale = true;
+			topEventsStale = true;
 			clearTimeout(propertySelectTimer);
 			propertySelectTimer = setTimeout(() => {
 				fetchMetrics(properties[i]?.id || "");
 				if (activeMainTab === "analysis") {
 					loadLandingPages(properties[i]?.id || "");
 					loadTrafficSources(properties[i]?.id || "");
+					loadTopEvents(properties[i]?.id || "");
 				}
 			}, 150);
 		};
@@ -1711,6 +1856,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const property = getProperties()[getSelectedIndex()];
 		if (landingPagesStale) loadLandingPages(property?.id || "");
 		if (trafficSourceStale) loadTrafficSources(property?.id || "");
+		if (topEventsStale) loadTopEvents(property?.id || "");
 	});
 
 	window.addEventListener("offline", () => {
@@ -1727,6 +1873,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		if (activeMainTab === "analysis") {
 			loadLandingPages(property?.id || "");
 			loadTrafficSources(property?.id || "");
+			loadTopEvents(property?.id || "");
 		}
 	});
 });

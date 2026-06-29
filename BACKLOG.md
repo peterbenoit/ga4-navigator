@@ -48,7 +48,7 @@ Items are checked when fully implemented.
 - [x] **Distinguish GA4 account from property in storage**
   Storage schema should be versioned. Documentation should clarify what `id` represents.
 
-- [ ] **Top events panel**
+- [x] **Top events panel**
   Fetch top 10 events by count for the selected property and date range using the GA4 Data API. Display event name and count. Rows link to the GA4 Events report filtered to that event name. Show a notice if scroll, file_download, click, and video_start events are all absent (likely enhanced measurement is off).
 
 - [x] **Traffic source breakdown card**

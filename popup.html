@@ -110,6 +110,29 @@
 				</div>
 			</section>
 
+			<section class="analysis-panel" aria-labelledby="top-events-heading">
+				<div class="analysis-header">
+					<div>
+						<h2 id="top-events-heading">Top Events</h2>
+						<p>Event counts and unique users for the selected date range.</p>
+					</div>
+				</div>
+				<div id="top-events-status" class="analysis-status" role="status" aria-live="polite"></div>
+				<p id="top-events-notice" class="analysis-notice" hidden></p>
+				<div class="analysis-table-wrap">
+					<table class="analysis-table">
+						<thead>
+							<tr>
+								<th scope="col">Event</th>
+								<th scope="col">Count</th>
+								<th scope="col">Users</th>
+							</tr>
+						</thead>
+						<tbody id="top-events-body"></tbody>
+					</table>
+				</div>
+			</section>
+
 			<section class="analysis-panel" aria-labelledby="landing-pages-heading">
 				<div class="analysis-header">
 					<div>

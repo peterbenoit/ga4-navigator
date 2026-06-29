@@ -162,6 +162,50 @@
 		});
 	}
 
+	// Enhanced measurement events auto-collected by GA4 when enabled.
+	// If none of these appear in results, surface a setup notice.
+	const ENHANCED_MEASUREMENT_EVENTS = new Set([
+		"scroll", "file_download", "click", "video_start", "video_complete",
+		"video_progress", "view_search_results", "form_start", "form_submit"
+	]);
+
+	const EVENTS_REPORT_PATH = "/reports/events?params=_u..nav%3Dmaui";
+
+	function buildTopEventsRequest(dateRange) {
+		return {
+			dateRanges: [getApiDateRange(dateRange)],
+			dimensions: [{ name: "eventName" }],
+			metrics: [
+				{ name: "eventCount" },
+				{ name: "totalUsers" }
+			],
+			orderBys: [{ metric: { metricName: "eventCount" }, desc: true }],
+			limit: 10
+		};
+	}
+
+	function buildTopEventRows(report) {
+		const rows = report?.rows || [];
+		let hasEnhancedEvent = false;
+
+		const eventRows = rows.map(row => {
+			const name = String(row.dimensionValues?.[0]?.value || "").trim() || "(not set)";
+			const count = Number(row.metricValues?.[0]?.value) || 0;
+			const users = Number(row.metricValues?.[1]?.value) || 0;
+			const isEnhanced = ENHANCED_MEASUREMENT_EVENTS.has(name);
+			if (isEnhanced) hasEnhancedEvent = true;
+			return {
+				name,
+				count: formatSafeCount(count),
+				users: formatSafeCount(users),
+				isEnhanced,
+				path: EVENTS_REPORT_PATH
+			};
+		});
+
+		return { rows: eventRows, hasEnhancedEvent };
+	}
+
 	const CHANNEL_PATHS = {
 		"Organic Search": "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui%26_r..dimension-value%3D%7B%22dimensionName%22%3A%22sessionDefaultChannelGroup%22%2C%22value%22%3A%22Organic%20Search%22%7D",
 		"Direct": "/reports/acquisition-traffic-acquisition?params=_u..nav%3Dmaui%26_r..dimension-value%3D%7B%22dimensionName%22%3A%22sessionDefaultChannelGroup%22%2C%22value%22%3A%22Direct%22%7D",
@@ -385,6 +429,8 @@
 		getTopInsightConfig,
 		buildTopInsightRequest,
 		buildTopInsightRows,
+		buildTopEventsRequest,
+		buildTopEventRows,
 		buildTrafficSourceRequest,
 		buildTrafficSourceRows,
 		buildLandingPagesRequest,

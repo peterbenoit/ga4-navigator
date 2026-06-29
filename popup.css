@@ -364,6 +364,36 @@ a {
 	cursor: help;
 }
 
+/* ─── TOP EVENTS ────────────────────────────── */
+
+.analysis-notice {
+	padding: 6px 16px 8px;
+	color: var(--text-muted);
+	font-size: 11px;
+	line-height: 1.5;
+	border-top: 1px solid var(--border);
+}
+
+.event-row-enhanced td:first-child a {
+	color: var(--text);
+}
+
+.event-enhanced-badge {
+	display: inline-block;
+	margin-left: 5px;
+	padding: 1px 4px;
+	background: var(--blue-light);
+	border: 1px solid #c6d9f5;
+	border-radius: 3px;
+	color: var(--blue);
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	vertical-align: middle;
+	cursor: help;
+}
+
 /* ─── CONTROLS ROW ──────────────────────────── */
 
 .controls-row {
