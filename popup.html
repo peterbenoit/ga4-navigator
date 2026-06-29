@@ -1,203 +1,214 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <meta charset="UTF-8">
-  <link rel="stylesheet" href="popup.css">
+	<meta charset="UTF-8">
+	<link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
 
-  <!-- MAIN VIEW -->
-  <div id="main-view">
-    <header class="app-header">
-      <div class="app-brand">
-        <span class="brand-mark">G4</span>
-        <span class="brand-name">Navigator</span>
-      </div>
-      <div class="header-actions">
-        <button class="btn-hdr" id="btn-manage" type="button" aria-label="Manage properties" title="Manage properties">⚙</button>
-        <button class="btn-hdr btn-hdr-primary" id="btn-add" type="button" aria-label="Add a property" title="Add a property">+ Add</button>
-      </div>
-    </header>
+	<!-- MAIN VIEW -->
+	<div id="main-view">
+		<header class="app-header">
+			<div class="app-brand">
+				<span class="brand-mark">G4</span>
+				<span class="brand-name">Navigator</span>
+			</div>
+			<div class="header-actions">
+				<button class="btn-hdr" id="btn-manage" type="button" aria-label="Manage properties"
+					title="Manage properties">⚙</button>
+				<button class="btn-hdr btn-hdr-primary" id="btn-add" type="button" aria-label="Add a property"
+					title="Add a property">+ Add</button>
+			</div>
+		</header>
 
-    <div class="property-bar">
-      <label for="propertySelect" class="visually-hidden">Property</label>
-      <select id="propertySelect"></select>
-    </div>
+		<div class="property-bar">
+			<label for="propertySelect" class="visually-hidden">Property</label>
+			<select id="propertySelect"></select>
+		</div>
 
-    <nav class="tab-bar" role="tablist" aria-label="Main navigation">
-      <button class="tab active" role="tab" aria-selected="true"  aria-controls="tab-dashboard"  data-tab="dashboard">Dashboard</button>
-      <button class="tab" id="tab-analysis-button" role="tab" aria-selected="false" aria-controls="tab-analysis" data-tab="analysis">Analysis</button>
-      <button class="tab"        role="tab" aria-selected="false" aria-controls="tab-reports"    data-tab="reports">Reports</button>
-      <button class="tab"        role="tab" aria-selected="false" aria-controls="tab-favorites"  data-tab="favorites">Favorites</button>
-    </nav>
+		<nav class="tab-bar" role="tablist" aria-label="Main navigation">
+			<button class="tab active" id="tab-dashboard-button" role="tab" aria-selected="true"
+				aria-controls="tab-dashboard" data-tab="dashboard">Dashboard</button>
+			<button class="tab" id="tab-analysis-button" role="tab" aria-selected="false" aria-controls="tab-analysis"
+				data-tab="analysis">Analysis</button>
+			<button class="tab" id="tab-reports-button" role="tab" aria-selected="false" aria-controls="tab-reports"
+				data-tab="reports">Reports</button>
+			<button class="tab" id="tab-favorites-button" role="tab" aria-selected="false" aria-controls="tab-favorites"
+				data-tab="favorites">Favorites</button>
+		</nav>
 
-    <!-- TAB: DASHBOARD -->
-    <div id="tab-dashboard" class="tab-panel active" role="tabpanel" aria-labelledby="tab-dashboard">
-      <div class="controls-row">
-        <div id="metrics-bar"></div>
-        <div id="date-pills"></div>
-      </div>
+		<!-- TAB: DASHBOARD -->
+		<div id="tab-dashboard" class="tab-panel active" role="tabpanel" aria-labelledby="tab-dashboard-button">
+			<div class="controls-row">
+				<div id="metrics-bar"></div>
+				<div id="date-pills"></div>
+			</div>
 
-      <div id="dashboard-grid" class="dashboard-grid"></div>
+			<div id="dashboard-grid" class="dashboard-grid"></div>
 
-      <section id="ai-digest" class="ai-digest" aria-labelledby="ai-digest-heading" hidden>
-        <div class="ai-digest-header">
-          <h2 id="ai-digest-heading">AI Digest</h2>
-          <button class="ai-digest-btn" id="btn-ai-digest" type="button">Summarize</button>
-        </div>
-        <div id="ai-digest-output" class="ai-digest-output" role="status" aria-live="polite"></div>
-      </section>
+			<section id="ai-digest" class="ai-digest" aria-labelledby="ai-digest-heading" hidden>
+				<div class="ai-digest-header">
+					<h2 id="ai-digest-heading">AI Digest</h2>
+					<button class="ai-digest-btn" id="btn-ai-digest" type="button">Summarize</button>
+				</div>
+				<div id="ai-digest-output" class="ai-digest-output" role="status" aria-live="polite"></div>
+			</section>
 
-      <section id="top-insights" class="top-insights" aria-labelledby="top-insights-heading">
-        <div class="top-insights-header">
-          <h2 id="top-insights-heading">Top Insights</h2>
-          <div id="insight-tabs" class="insight-tabs" role="group" aria-label="Insight type"></div>
-        </div>
-        <div id="insight-status" class="insight-status" role="status" aria-live="polite"></div>
-        <div id="insight-list" class="insight-list"></div>
-      </section>
+			<section id="top-insights" class="top-insights" aria-labelledby="top-insights-heading">
+				<div class="top-insights-header">
+					<h2 id="top-insights-heading">Top Insights</h2>
+					<div id="insight-tabs" class="insight-tabs" role="group" aria-label="Insight type"></div>
+				</div>
+				<div id="insight-status" class="insight-status" role="status" aria-live="polite"></div>
+				<div id="insight-list" class="insight-list"></div>
+			</section>
 
-      <section id="health-check" class="health-check" aria-labelledby="health-check-heading">
-        <div class="health-check-header">
-          <div>
-            <h2 id="health-check-heading">Health Check</h2>
-            <div id="health-status" role="status" aria-live="polite"></div>
-          </div>
-          <button class="health-run" id="btn-health-run" type="button">Run Check</button>
-        </div>
-        <div id="health-results" class="health-results"></div>
-      </section>
+			<section id="health-check" class="health-check" aria-labelledby="health-check-heading">
+				<div class="health-check-header">
+					<div>
+						<h2 id="health-check-heading">Health Check</h2>
+						<div id="health-status" role="status" aria-live="polite"></div>
+					</div>
+					<button class="health-run" id="btn-health-run" type="button">Run Check</button>
+				</div>
+				<div id="health-results" class="health-results"></div>
+			</section>
 
-      <div id="empty-state" class="empty-state">
-        <div class="empty-icon">📊</div>
-        <h2>No properties yet</h2>
-        <p>Add your first GA4 property to see metrics and navigate your reports.</p>
-        <button class="btn-primary" id="btn-empty-add" type="button">Add Property</button>
-      </div>
-    </div>
+			<div id="empty-state" class="empty-state">
+				<div class="empty-icon">📊</div>
+				<h2>No properties yet</h2>
+				<p>Add your first GA4 property to see metrics and navigate your reports.</p>
+				<button class="btn-primary" id="btn-empty-add" type="button">Add Property</button>
+			</div>
+		</div>
 
-    <!-- TAB: ANALYSIS -->
-    <div id="tab-analysis" class="tab-panel" role="tabpanel" aria-labelledby="tab-analysis-button">
-      <section class="analysis-panel" aria-labelledby="landing-pages-heading">
-        <div class="analysis-header">
-          <div>
-            <h2 id="landing-pages-heading">Landing Pages</h2>
-            <p>Entry-page performance for the selected date range.</p>
-          </div>
-        </div>
-        <div id="landing-pages-status" class="analysis-status" role="status" aria-live="polite"></div>
-        <div class="analysis-table-wrap">
-          <table class="analysis-table">
-            <thead>
-              <tr>
-                <th scope="col">Landing page</th>
-                <th scope="col">Sessions</th>
-                <th scope="col">Engagement</th>
-                <th scope="col">Bounce</th>
-              </tr>
-            </thead>
-            <tbody id="landing-pages-body"></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+		<!-- TAB: ANALYSIS -->
+		<div id="tab-analysis" class="tab-panel" role="tabpanel" aria-labelledby="tab-analysis-button">
+			<section class="analysis-panel" aria-labelledby="landing-pages-heading">
+				<div class="analysis-header">
+					<div>
+						<h2 id="landing-pages-heading">Landing Pages</h2>
+						<p>Entry-page performance for the selected date range.</p>
+					</div>
+				</div>
+				<div id="landing-pages-status" class="analysis-status" role="status" aria-live="polite"></div>
+				<div class="analysis-table-wrap">
+					<table class="analysis-table">
+						<thead>
+							<tr>
+								<th scope="col">Landing page</th>
+								<th scope="col">Sessions</th>
+								<th scope="col">Engagement</th>
+								<th scope="col">Bounce</th>
+							</tr>
+						</thead>
+						<tbody id="landing-pages-body"></tbody>
+					</table>
+				</div>
+			</section>
+		</div>
 
-    <!-- TAB: REPORTS -->
-    <div id="tab-reports" class="tab-panel" role="tabpanel" aria-labelledby="tab-reports">
-      <div id="report-list"></div>
-    </div>
+		<!-- TAB: REPORTS -->
+		<div id="tab-reports" class="tab-panel" role="tabpanel" aria-labelledby="tab-reports-button">
+			<div id="report-list"></div>
+		</div>
 
-    <!-- TAB: FAVORITES -->
-    <div id="tab-favorites" class="tab-panel" role="tabpanel" aria-labelledby="tab-favorites">
-      <div id="shortcut-list"></div>
-      <div id="recent-list"></div>
-    </div>
-  </div>
+		<!-- TAB: FAVORITES -->
+		<div id="tab-favorites" class="tab-panel" role="tabpanel" aria-labelledby="tab-favorites-button">
+			<div id="shortcut-list"></div>
+			<div id="recent-list"></div>
+		</div>
+	</div>
 
-  <!-- ADD VIEW -->
-  <div id="add-view">
-    <header class="app-header sub-header">
-      <button class="btn-back" id="btn-cancel" type="button">
-        <span aria-hidden="true">←</span> Back
-      </button>
-      <span class="sub-title">Add Property</span>
-    </header>
+	<!-- ADD VIEW -->
+	<div id="add-view">
+		<header class="app-header sub-header">
+			<button class="btn-back" id="btn-cancel" type="button">
+				<span aria-hidden="true">←</span> Back
+			</button>
+			<span class="sub-title">Add Property</span>
+		</header>
 
-    <div class="view-body">
-      <p class="view-desc">Give it a nickname, then paste any URL from that GA4 account — the property ID is detected automatically.</p>
+		<div class="view-body">
+			<p class="view-desc">Give it a nickname, then paste any URL from that GA4 account — the property ID is
+				detected automatically.</p>
 
-      <div class="field">
-        <label for="prop-name">Nickname</label>
-        <input type="text" id="prop-name" placeholder="e.g. Work Site" autocomplete="off" />
-      </div>
+			<div class="field">
+				<label for="prop-name">Nickname</label>
+				<input type="text" id="prop-name" placeholder="e.g. Work Site" autocomplete="off" />
+			</div>
 
-      <div class="field">
-        <label for="prop-id">Paste any GA4 URL from that account</label>
-        <input type="text" id="prop-id" placeholder="https://analytics.google.com/..." autocomplete="off" />
-        <div class="hint">Copy the URL from your browser while viewing that GA4 account</div>
-      </div>
+			<div class="field">
+				<label for="prop-id">Paste any GA4 URL from that account</label>
+				<input type="text" id="prop-id" placeholder="https://analytics.google.com/..." autocomplete="off" />
+				<div class="hint">Copy the URL from your browser while viewing that GA4 account</div>
+			</div>
 
-      <div id="add-error" class="error-msg" role="status" aria-live="polite"></div>
+			<div id="add-error" class="error-msg" role="status" aria-live="polite"></div>
 
-      <div class="btn-row">
-        <button class="btn-primary" id="btn-save" type="button">Save Property</button>
-      </div>
-    </div>
-  </div>
+			<div class="btn-row">
+				<button class="btn-primary" id="btn-save" type="button">Save Property</button>
+			</div>
+		</div>
+	</div>
 
-  <!-- MANAGE VIEW -->
-  <div id="manage-view">
-    <header class="app-header sub-header">
-      <button class="btn-back" id="btn-manage-done" type="button">
-        <span aria-hidden="true">←</span> Back
-      </button>
-      <span class="sub-title">Manage</span>
-    </header>
+	<!-- MANAGE VIEW -->
+	<div id="manage-view">
+		<header class="app-header sub-header">
+			<button class="btn-back" id="btn-manage-done" type="button">
+				<span aria-hidden="true">←</span> Back
+			</button>
+			<span class="sub-title">Manage</span>
+		</header>
 
-    <div class="view-body">
-      <div class="view-section">
-        <h3 class="view-section-title">Properties</h3>
-        <p class="view-section-desc">Click a name to rename it.</p>
-        <div id="manage-list"></div>
-      </div>
+		<div class="view-body">
+			<div class="view-section">
+				<h3 class="view-section-title">Properties</h3>
+				<p class="view-section-desc">Click a name to rename it.</p>
+				<div id="manage-list"></div>
+			</div>
 
-      <div class="view-section">
-        <h3 class="view-section-title">Add Favorite</h3>
-        <div class="shortcut-panel">
-          <div class="field">
-            <label for="shortcut-label">Name</label>
-            <input type="text" id="shortcut-label" placeholder="e.g. Landing pages" />
-          </div>
-          <div class="field">
-            <label for="shortcut-url">GA4 report URL</label>
-            <textarea id="shortcut-url" placeholder="https://analytics.google.com/analytics/web/#/..."></textarea>
-            <div class="hint">Paste the full GA4 report URL to save as a favorite</div>
-          </div>
-          <div id="shortcut-error" class="error-msg" role="status" aria-live="polite"></div>
-          <button class="btn-primary" id="btn-shortcut-save" type="button">Add Favorite</button>
-        </div>
-      </div>
+			<div class="view-section">
+				<h3 class="view-section-title">Add Favorite</h3>
+				<div class="shortcut-panel">
+					<div class="field">
+						<label for="shortcut-label">Name</label>
+						<input type="text" id="shortcut-label" placeholder="e.g. Landing pages" />
+					</div>
+					<div class="field">
+						<label for="shortcut-url">GA4 report URL</label>
+						<textarea id="shortcut-url"
+							placeholder="https://analytics.google.com/analytics/web/#/..."></textarea>
+						<div class="hint">Paste the full GA4 report URL to save as a favorite</div>
+					</div>
+					<div id="shortcut-error" class="error-msg" role="status" aria-live="polite"></div>
+					<button class="btn-primary" id="btn-shortcut-save" type="button">Add Favorite</button>
+				</div>
+			</div>
 
-      <div id="shortcut-manage-list"></div>
+			<div id="shortcut-manage-list"></div>
 
-      <div class="view-section io-section">
-        <h3 class="view-section-title">Data</h3>
-        <div class="io-row">
-          <button class="btn-secondary" id="btn-export" type="button">Export JSON</button>
-          <button class="btn-secondary" id="btn-import-toggle" type="button">Import JSON</button>
-        </div>
-        <div id="import-row">
-          <textarea id="import-input" placeholder='[{"label":"Site Name","id":"a123p456"}]'></textarea>
-          <div id="import-error" class="error-msg" role="status" aria-live="polite"></div>
-          <button class="btn-primary" id="btn-import-apply" type="button">Apply Import</button>
-        </div>
-      </div>
-    </div>
-  </div>
+			<div class="view-section io-section">
+				<h3 class="view-section-title">Data</h3>
+				<div class="io-row">
+					<button class="btn-secondary" id="btn-export" type="button">Export JSON</button>
+					<button class="btn-secondary" id="btn-import-toggle" type="button">Import JSON</button>
+				</div>
+				<div id="import-row">
+					<textarea id="import-input" placeholder='[{"label":"Site Name","id":"a123p456"}]'></textarea>
+					<div id="import-error" class="error-msg" role="status" aria-live="polite"></div>
+					<button class="btn-primary" id="btn-import-apply" type="button">Apply Import</button>
+				</div>
+			</div>
+		</div>
+	</div>
 
-  <script src="shortcut-utils.js"></script>
-  <script src="analytics-utils.js"></script>
-  <script src="popup.js"></script>
-  <script src="tabs.js"></script>
+	<script src="shortcut-utils.js"></script>
+	<script src="analytics-utils.js"></script>
+	<script src="popup.js"></script>
+	<script src="tabs.js"></script>
 </body>
+
 </html>

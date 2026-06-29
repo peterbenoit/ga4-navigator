@@ -13,7 +13,7 @@ Items are checked when fully implemented.
 - [x] **Prevent stale metrics from overwriting the selected property**
   Metric requests use a request sequence ID. Only the latest selected property updates the metrics bar.
 
-- [ ] **Validate and normalize imported properties**
+- [x] **Validate and normalize imported properties**
   Import should trim labels/IDs, reject invalid GA4 IDs, deduplicate entries, and strip unexpected fields.
 
 - [x] **Add GA4 Data API quota / rate-limit handling**
