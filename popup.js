@@ -4,18 +4,18 @@ const REPORTS = [
 	{
 		section: "Quick Access",
 		items: [
-			{ icon: "🟢", title: "Realtime", desc: "Who's on your site right now", path: "/realtime/overview?params=_u..nav%3Dmaui&collectionId=business-objectives" },
-			{ icon: "🏠", title: "Home", desc: "Your overview dashboard", path: "/reports/intelligenthome?params=_u..nav%3Dmaui&collectionId=business-objectives" },
-			{ icon: "📋", title: "Reports Snapshot", desc: "Quick summary of everything", path: "/reports/reportinghub?params=_u..nav%3Dmaui&collectionId=business-objectives" }
+			{ icon: "🟢", title: "Realtime", desc: "Who's on your site right now", path: "/reports/realtime/overview?params=_u..nav%3Dmaui" },
+			{ icon: "🏠", title: "Home", desc: "Your overview dashboard", path: "/reports/intelligenthome?params=_u..nav%3Dmaui&collectionId=life-cycle" },
+			{ icon: "📋", title: "Reports Snapshot", desc: "Quick summary of everything", path: "/reports/reportinghub?params=_u..nav%3Dmaui&collectionId=life-cycle" }
 		]
 	},
 	{
 		section: "Audience",
 		items: [
-			{ icon: "👥", title: "WHO visited", desc: "Countries, cities, languages", path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=user&ruid=user-demographics-overview,user,demographics&r=user-demographics-overview" },
-			{ icon: "🗺️", title: "HOW they found you", desc: "Google, direct, social, referral", path: "/reports/dashboard?params=_u..nav%3Dmaui%26_r.3..selmet%3D%5B%22conversions%22%5D&collectionId=business-objectives&ruid=business-objectives-generate-leads-overview,business-objectives,generate-leads&r=business-objectives-generate-leads-overview" },
-			{ icon: "📄", title: "WHAT they looked at", desc: "Pages and screens visited", path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens" },
-			{ icon: "⏱️", title: "Engagement", desc: "Session duration, bounce rate", path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=lifecycle&ruid=life-cycle-engagement-overview,lifecycle,engagement&r=life-cycle-engagement-overview" }
+			{ icon: "👥", title: "WHO visited", desc: "Countries, cities, languages", path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-audience-overview%2Clifecycle%2Causers&r=life-cycle-audience-overview" },
+			{ icon: "🗺️", title: "HOW they found you", desc: "Google, direct, social, referral", path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-acquisition-traffic-acquisition%2Clifecycle%2Cacquisition&r=life-cycle-acquisition-traffic-acquisition" },
+			{ icon: "📄", title: "WHAT they looked at", desc: "Pages and screens visited", path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-pages-screens%2Clifecycle%2Cengagement&r=life-cycle-engagement-pages-screens" },
+			{ icon: "⏱️", title: "Engagement", desc: "Session duration, bounce rate", path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-overview%2Clifecycle%2Cengagement&r=life-cycle-engagement-overview" }
 		]
 	}
 ];
@@ -27,7 +27,7 @@ const DATE_RANGES = [
 ];
 
 const TOP_INSIGHT_TYPES = ["pages", "sources", "campaigns", "events"];
-const LANDING_PAGES_PATH = "/reports/explorer?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-landing-pages-v2,lifecycle,engagement&r=life-cycle-engagement-landing-pages-v2";
+const LANDING_PAGES_PATH = "/reports/explorer?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-landing-pages-v2%2Clifecycle%2Cengagement&r=life-cycle-engagement-landing-pages-v2";
 
 let metricsRequestSequence = 0;
 let healthRequestSequence = 0;
@@ -306,12 +306,14 @@ function renderReports() {
 			a.className = "btn ga4-link";
 			a.dataset.path = item.path;
 			a.href = "#";
-			a.target = "_blank";
 			a.rel = "noopener noreferrer";
-			a.onclick = () => {
+			a.onclick = (e) => {
+				e.preventDefault();
 				const props = getProperties();
 				const property = props[getSelectedIndex()];
 				if (!property) return;
+				const url = buildHref(property.id, item.path, getDateRange());
+				if (url && url !== "#") chrome.tabs.create({ url });
 				recordRecentReport({
 					label: item.title,
 					propertyId: property.id,

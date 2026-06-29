@@ -26,7 +26,8 @@
 	},
 	"permissions": [
 		"identity",
-		"sidePanel"
+		"sidePanel",
+		"tabs"
 	],
 	"host_permissions": [
 		"https://analyticsdata.googleapis.com/*"
