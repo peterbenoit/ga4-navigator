@@ -89,6 +89,48 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
 - [ ] **Quick-launch GA4 Explorations**
   Shortcut buttons to create new Explorations (free form, funnel, path, segment overlap) for the selected property.
 
+- [ ] **Question-to-report navigator**
+  User types or selects a plain-English question (e.g., "Where is our traffic coming from?") and the extension opens the exact GA4 report, pre-filtered where possible. Questions sourced from the GA4 Question Reference. Organized by category (Traffic, Campaigns, Content, etc.).
+
+- [ ] **Category-based report shortcuts**
+  Pre-built shortcut groups matching the question reference categories: Traffic & Acquisition, Campaign Performance, Content & Page Performance, User Behavior, Technical & Device, Audience & Demographics, Conversions & Events, Site Search, Real-Time, Trends & Comparisons. Each group opens as a collapsed/expandable section.
+
+- [ ] **Engagement metrics spotlight** *(already listed — expand scope)*
+  Add avg. engagement time per page alongside engagement rate and engaged sessions. Surface the "90% scroll depth" event count for a selected page using the scroll enhanced measurement.
+
+- [ ] **Top events panel**
+  Top events for the selected date range with counts. Rows deep-link to the GA4 Events report filtered to that event. Calls out enhanced measurement events (scroll, file_download, outbound click, video_start, site search) specifically so users know which are auto-collected.
+
+- [ ] **File download and outbound click tracker**
+  Shows `file_download` and `click` (outbound) event counts for the selected date range. Lists top file URLs and top outbound domains. Links to the filtered GA4 Events report. Requires enhanced measurement to be on — shows a setup warning if event counts are zero.
+
+- [ ] **Site search term viewer**
+  Shows top `search_term` values from the `view_search_results` or `search` event for the selected property and date range. Highlights high-frequency terms with no matching shortcut or page as potential content gaps. Links to the GA4 Events report filtered to the search event.
+
+- [ ] **Traffic source breakdown card**
+  Compact channel group summary (Organic Search, Direct, Referral, Paid Search, Organic Social, Email, Unassigned) with session counts and engagement rate per channel. Each row links to Traffic Acquisition filtered to that channel. Flags Unassigned traffic above a threshold as a UTM tagging issue.
+
+- [ ] **Device and browser snapshot**
+  Shows sessions split by device category (Desktop / Mobile / Tablet) with engagement rate per category. Second tab shows top browsers. Flags high IE/legacy browser share. Links to GA4 Tech reports. Useful before responsive design or compatibility decisions.
+
+- [ ] **New vs. returning user card**
+  Pulls new user and returning user counts for the selected date range. Shows as a simple ratio card with a link to the GA4 Retention report.
+
+- [ ] **"Answerable by GA4?" diagnostic**
+  When a user asks a question or selects a category the extension can't fetch data for (e.g., page load speed, individual user identity, connection type), show a clear explanation of the limitation and point to the right tool (Search Console, Lighthouse, Hotjar). Modeled on the "Unanswerable by GA4" and "Partial" rows in the question reference.
+
+- [ ] **Landing page quick view**
+  Shows top landing pages for the selected date range with sessions, engagement rate, and bounce rate — without navigating to GA4. Row click opens the Landing Page report filtered to that path. Distinct from Pages and Screens (entry points only).
+
+- [ ] **Conversion / key event by source**
+  Shows conversion counts broken down by default channel group so users can immediately see which traffic source converts best. Links to Traffic Acquisition sorted by conversion rate.
+
+- [ ] **Real-time active users badge and panel**
+  Existing browser action badge idea — expand to show a small real-time panel: active users in last 30 min, top active pages, top active channels. Auto-refreshes on a slow interval (e.g., every 60s) to avoid quota issues. Panel displays a "launched something? watch live" prompt.
+
+- [ ] **Trends & comparison quick picks**
+  One-click date comparison presets beyond prior period: same week last year, same month last year, last 90 days vs prior 90. Applied to whatever report or metric card is active. Helps answer YoY and long-term trend questions without manually setting GA4 date pickers.
+
 ## Larger / Later Ideas
 
 - [ ] **Page-specific GA4 context**

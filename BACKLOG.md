@@ -48,6 +48,21 @@ Items are checked when fully implemented.
 - [x] **Distinguish GA4 account from property in storage**
   Storage schema should be versioned. Documentation should clarify what `id` represents.
 
+- [ ] **Top events panel**
+  Fetch top 10 events by count for the selected property and date range using the GA4 Data API. Display event name and count. Rows link to the GA4 Events report filtered to that event name. Show a notice if scroll, file_download, click, and video_start events are all absent (likely enhanced measurement is off).
+
+- [ ] **Traffic source breakdown card**
+  Fetch sessions and engagement rate by `sessionDefaultChannelGroup` for the selected date range. Display as a compact ranked list. Each row deep-links to Traffic Acquisition filtered to that channel. Flag rows where channel is "Unassigned" and count exceeds 5% of sessions.
+
+- [ ] **Device category snapshot**
+  Fetch sessions and engagement rate split by `deviceCategory` (Desktop / Mobile / Tablet). Display as a small card alongside the existing metrics bar. Link to Tech > Tech Overview. Keep the API call lightweight — single-dimension, single-date-range request.
+
+- [ ] **New vs. returning user card**
+  Fetch `newUsers` and `activeUsers` for the selected date range. Derive returning users. Display as a ratio card with a link to the Retention report.
+
+- [ ] **Site search term viewer**
+  Fetch top 10 `searchTerm` dimension values from the `view_search_results` event using the GA4 Data API. Display with event counts. Link to Events report filtered to the search event. Show a setup warning if no results are returned (enhanced measurement may not be configured).
+
 - [ ] **Dark mode CSS token support**
   `@media (prefers-color-scheme: dark)` block overrides color tokens only. DO NOT implement until everything else in this list is done.
 
