@@ -1,0 +1,10 @@
+{
+  "name": "ga4-navigator",
+  "version": "1.1.0",
+  "description": "Chrome extension for navigating GA4 reports and metrics",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT"
+}
