@@ -51,7 +51,7 @@ Items are checked when fully implemented.
 - [ ] **Top events panel**
   Fetch top 10 events by count for the selected property and date range using the GA4 Data API. Display event name and count. Rows link to the GA4 Events report filtered to that event name. Show a notice if scroll, file_download, click, and video_start events are all absent (likely enhanced measurement is off).
 
-- [ ] **Traffic source breakdown card**
+- [x] **Traffic source breakdown card**
   Fetch sessions and engagement rate by `sessionDefaultChannelGroup` for the selected date range. Display as a compact ranked list. Each row deep-links to Traffic Acquisition filtered to that channel. Flag rows where channel is "Unassigned" and count exceeds 5% of sessions.
 
 - [ ] **Device category snapshot**

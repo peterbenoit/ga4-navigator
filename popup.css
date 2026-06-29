@@ -352,6 +352,18 @@ a {
 	text-decoration: underline;
 }
 
+.traffic-row-warning td:first-child a {
+	color: var(--orange);
+}
+
+.traffic-flag {
+	display: inline-block;
+	margin-left: 4px;
+	font-size: 10px;
+	vertical-align: middle;
+	cursor: help;
+}
+
 /* ─── CONTROLS ROW ──────────────────────────── */
 
 .controls-row {

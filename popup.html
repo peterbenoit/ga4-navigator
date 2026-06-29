@@ -86,6 +86,30 @@
 
 		<!-- TAB: ANALYSIS -->
 		<div id="tab-analysis" class="tab-panel" role="tabpanel" aria-labelledby="tab-analysis-button">
+
+			<section class="analysis-panel" aria-labelledby="traffic-source-heading">
+				<div class="analysis-header">
+					<div>
+						<h2 id="traffic-source-heading">Traffic Sources</h2>
+						<p>Sessions by channel for the selected date range.</p>
+					</div>
+				</div>
+				<div id="traffic-source-status" class="analysis-status" role="status" aria-live="polite"></div>
+				<div class="analysis-table-wrap">
+					<table class="analysis-table">
+						<thead>
+							<tr>
+								<th scope="col">Channel</th>
+								<th scope="col">Sessions</th>
+								<th scope="col">Share</th>
+								<th scope="col">Engagement</th>
+							</tr>
+						</thead>
+						<tbody id="traffic-source-body"></tbody>
+					</table>
+				</div>
+			</section>
+
 			<section class="analysis-panel" aria-labelledby="landing-pages-heading">
 				<div class="analysis-header">
 					<div>
@@ -108,6 +132,7 @@
 					</table>
 				</div>
 			</section>
+
 		</div>
 
 		<!-- TAB: REPORTS -->

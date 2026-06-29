@@ -32,11 +32,13 @@ const LANDING_PAGES_PATH = "/reports/explorer?params=_u..nav%3Dmaui&collectionId
 let metricsRequestSequence = 0;
 let healthRequestSequence = 0;
 let landingRequestSequence = 0;
+let trafficRequestSequence = 0;
 let selectedTopInsightType = "pages";
 let propertySelectTimer = null;
 let compareMode = false;
 let activeMainTab = "dashboard";
 let landingPagesStale = true;
+let trafficSourceStale = true;
 
 // --- Storage ---
 
@@ -346,8 +348,10 @@ function renderDatePills() {
 			renderRecentReports();
 			fetchMetrics(props[getSelectedIndex()]?.id || "");
 			landingPagesStale = true;
+			trafficSourceStale = true;
 			if (activeMainTab === "analysis") {
 				loadLandingPages(props[getSelectedIndex()]?.id || "");
+				loadTrafficSources(props[getSelectedIndex()]?.id || "");
 			}
 			renderDatePills();
 		};
@@ -822,6 +826,135 @@ async function loadTopInsights(numericId, propertyId, token, dateRange, requestI
 	}
 }
 
+// --- Traffic source breakdown ---
+
+function renderTrafficSourceRows(rows, propertyId) {
+	const body = document.getElementById("traffic-source-body");
+	body.innerHTML = "";
+
+	rows.forEach(row => {
+		const tr = document.createElement("tr");
+		if (row.flagUnassigned) tr.classList.add("traffic-row-warning");
+
+		const channelCell = document.createElement("td");
+		const link = document.createElement("a");
+		link.href = buildHref(propertyId, row.path, getDateRange());
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.textContent = row.channel;
+		if (row.flagUnassigned) {
+			const flag = document.createElement("span");
+			flag.className = "traffic-flag";
+			flag.title = "High Unassigned traffic may indicate missing UTM parameters";
+			flag.textContent = "⚠";
+			link.appendChild(flag);
+		}
+		link.setAttribute("aria-label", `Open GA4 traffic report for ${row.channel}`);
+		link.onclick = () => recordRecentReport({
+			label: `Traffic: ${row.channel}`,
+			propertyId,
+			path: row.path
+		});
+		channelCell.appendChild(link);
+		tr.appendChild(channelCell);
+
+		[row.sessions, `${row.share}%`, row.engagementRate].forEach(value => {
+			const cell = document.createElement("td");
+			cell.textContent = value;
+			tr.appendChild(cell);
+		});
+
+		body.appendChild(tr);
+	});
+}
+
+async function fetchTrafficSourceReport(numericId, token, dateRange) {
+	const response = await fetch(`${GA4_API}${numericId}:runReport`, {
+		method: "POST",
+		headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+		body: JSON.stringify(GA4AnalyticsUtils.buildTrafficSourceRequest(dateRange))
+	});
+	const body = await response.json();
+	if (!response.ok) {
+		const error = new Error(body.error?.message || "Traffic source API error");
+		error.status = response.status;
+		throw error;
+	}
+	return body;
+}
+
+function showTrafficConnect(propertyId, requestId) {
+	const status = document.getElementById("traffic-source-status");
+	status.innerHTML = "";
+	const button = document.createElement("button");
+	button.className = "metric-connect";
+	button.type = "button";
+	button.textContent = "Connect Google →";
+	button.addEventListener("click", () => {
+		if (requestId === trafficRequestSequence) loadTrafficSources(propertyId, true);
+	});
+	status.appendChild(button);
+}
+
+async function loadTrafficSources(propertyId, interactive = false) {
+	const requestId = ++trafficRequestSequence;
+	const status = document.getElementById("traffic-source-status");
+	const body = document.getElementById("traffic-source-body");
+	body.innerHTML = "";
+
+	const numericId = getNumericId(propertyId || "");
+	if (!numericId) {
+		status.textContent = "Add or select a property to view traffic sources.";
+		return;
+	}
+	if (typeof navigator !== "undefined" && !navigator.onLine) {
+		status.textContent = "No connection. Check your network.";
+		return;
+	}
+	if (typeof chrome === "undefined" || !chrome.identity) {
+		status.textContent = "Traffic source breakdown requires the installed extension.";
+		return;
+	}
+
+	status.textContent = "Loading traffic sources...";
+
+	let token;
+	try {
+		token = await getIdentityToken(interactive);
+	} catch {
+		if (requestId !== trafficRequestSequence) return;
+		if (!interactive) showTrafficConnect(propertyId, requestId);
+		else status.textContent = "Google authentication failed.";
+		return;
+	}
+
+	try {
+		let report;
+		try {
+			report = await fetchTrafficSourceReport(numericId, token, getDateRange());
+		} catch (error) {
+			if (!isAuthApiError(error)) throw error;
+			await removeIdentityToken(token);
+			token = await getIdentityToken(true);
+			report = await fetchTrafficSourceReport(numericId, token, getDateRange());
+		}
+
+		if (requestId !== trafficRequestSequence) return;
+		const rows = GA4AnalyticsUtils.buildTrafficSourceRows(report);
+		renderTrafficSourceRows(rows, propertyId);
+		status.textContent = rows.length
+			? `${rows.length} channel${rows.length === 1 ? "" : "s"} · click any row to open in GA4`
+			: "No traffic sources found for this date range.";
+		trafficSourceStale = false;
+	} catch (error) {
+		if (requestId !== trafficRequestSequence) return;
+		if (error?.status === 429) status.textContent = "Rate limit reached. Try again in a moment.";
+		else if (error?.status === 403) status.textContent = "Analytics permission denied.";
+		else if (error?.status === 401) status.textContent = "Google authentication expired.";
+		else status.textContent = "Traffic source breakdown unavailable.";
+	}
+}
+
 // --- Landing page analysis ---
 
 function renderLandingPageRows(rows, propertyId) {
@@ -1145,10 +1278,14 @@ function showMain() {
 			updateLinks(properties[i]?.id || "");
 			clearHealthCheck();
 			landingPagesStale = true;
+			trafficSourceStale = true;
 			clearTimeout(propertySelectTimer);
 			propertySelectTimer = setTimeout(() => {
 				fetchMetrics(properties[i]?.id || "");
-				if (activeMainTab === "analysis") loadLandingPages(properties[i]?.id || "");
+				if (activeMainTab === "analysis") {
+					loadLandingPages(properties[i]?.id || "");
+					loadTrafficSources(properties[i]?.id || "");
+				}
 			}, 150);
 		};
 	}
@@ -1573,6 +1710,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		if (activeMainTab !== "analysis") return;
 		const property = getProperties()[getSelectedIndex()];
 		if (landingPagesStale) loadLandingPages(property?.id || "");
+		if (trafficSourceStale) loadTrafficSources(property?.id || "");
 	});
 
 	window.addEventListener("offline", () => {
@@ -1586,6 +1724,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 	window.addEventListener("online", () => {
 		const property = getProperties()[getSelectedIndex()];
 		if (property) fetchMetrics(property.id);
-		if (activeMainTab === "analysis") loadLandingPages(property?.id || "");
+		if (activeMainTab === "analysis") {
+			loadLandingPages(property?.id || "");
+			loadTrafficSources(property?.id || "");
+		}
 	});
 });
