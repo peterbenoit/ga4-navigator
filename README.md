@@ -70,13 +70,43 @@ Common auth issues:
 - **Permission denied** — Ensure your Google account has access to the GA4 property.
 - **Rate limit reached** — The GA4 Data API has per-property quotas. Wait a moment and try again.
 
+## Project Structure
+
+```
+ga4-navigator/
+├── manifest.json          # Extension manifest (MV3)
+├── popup.html             # Side panel UI
+├── popup.js               # All popup logic — storage, rendering, API calls
+├── popup.css              # All popup styles
+├── tabs.js                # Tab-switching behaviour (fires ga4-tab-change events)
+├── analytics-utils.js     # Pure GA4 Data API request builders and response parsers
+├── shortcut-utils.js      # URL parsing, property/shortcut normalisation helpers
+├── background.js          # Service worker — opens the side panel on toolbar click
+├── icons/                 # Extension icons at 16, 32, 48, and 128px
+├── scripts/
+│   ├── validate.js        # Pre-package checks (assets, manifest fields)
+│   └── package.js         # Builds a distributable zip
+└── *.test.js              # Tests (Node built-in test runner, no install needed)
+```
+
 ## Running Tests
 
 ```bash
 npm test
 ```
 
-Tests use Node's built-in test runner. No install required.
+Tests use Node's built-in test runner. No install required. Test files cover:
+
+| File | What it tests |
+|---|---|
+| `analytics-utils.test.js` | API request builders, response parsers, delta calculations |
+| `shortcut-utils.test.js` | URL parsing, property ID normalisation, import validation |
+| `popup-storage.test.js` | chrome.storage migration, import/export, save/load cycle |
+| `popup-metrics.test.js` | fetchMetrics auth flow, stale-request guards, health check |
+| `popup-links.test.js` | Built-in report path correctness |
+| `popup-accessibility.test.js` | ARIA labels, live regions, tab panel associations |
+| `manifest.test.js` | Manifest fields, icon asset presence, validate script |
+| `background.test.js` | Service worker side panel behaviour |
 
 ## Adding a Property
 
@@ -90,6 +120,32 @@ The property ID format is `a{accountId}p{propertyId}` (e.g. `a123456789p98765432
 ## Export / Import
 
 Use **Manage → Data** to export your properties and shortcuts as JSON. This is useful for backing up settings or copying them to another browser profile.
+
+## Packaging a Release
+
+Before packaging, validate that all manifest-declared assets are present:
+
+```bash
+npm run validate
+```
+
+To build a distributable zip (runs validation first, then excludes dev-only files):
+
+```bash
+npm run package
+```
+
+This produces `ga4-navigator-{version}.zip` in the project root, ready to upload to the Chrome Web Store. Dev-only files (`*.test.js`, `scripts/`, `docs/`, `BACKLOG.md`, etc.) are excluded from the zip automatically.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| "Metrics: load as extension" | Running popup.html directly in a browser tab | Load the extension via `chrome://extensions` → Load unpacked |
+| "Connect Google →" always appears | OAuth client not linked to this extension ID | Copy the extension ID from `chrome://extensions` and add it to your OAuth client in Google Cloud Console |
+| Auth works but metrics show an error | Google account lacks GA4 access | Ensure the account has Viewer access or higher on the GA4 property |
+| "Rate limit reached" | GA4 Data API quota exceeded | Wait 60 seconds and try again; the API has per-property daily quotas |
+| Extension ID changes after reload | Loading from a different directory | Always load from the same directory, or pin the ID in your OAuth client |
 
 ## License
 

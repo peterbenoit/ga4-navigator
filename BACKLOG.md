@@ -53,18 +53,17 @@ Items are checked when fully implemented.
 
 ## Priority 3: Maintenance
 
-- [ ] **Add a README with setup and OAuth configuration**
+- [x] **Add a README with setup and OAuth configuration**
   README should cover loading the extension locally, configuring the Google OAuth client, Analytics Data API access, and basic troubleshooting.
-  > Note: `README.md` exists but may not cover all of the above.
 
 - [x] **Add lightweight tests for pure logic**
   Test files exist for analytics utils, popup metrics, popup storage, popup links, popup accessibility, shortcuts, and background.
 
-- [ ] **Split CSS and JavaScript responsibilities for maintainability**
+- [x] **Split CSS and JavaScript responsibilities for maintainability**
   Styles should move to a dedicated CSS file. Popup logic should be grouped into small modules or clearly separated sections.
 
-- [ ] **Declare all required extension icon sizes**
+- [x] **Declare all required extension icon sizes**
   Manifest should declare icons at 16, 32, 48, and 128px with matching asset files.
 
-- [ ] **Add release packaging checks**
+- [x] **Add release packaging checks**
   A documented command should validate the manifest, check for missing assets, and exclude dev-only files from the package.
