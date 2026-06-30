@@ -5,6 +5,7 @@
 	const TRAFFIC_ACQUISITION_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=traffic-acquisition";
 	const PAGES_SCREENS_PATH = "/reports/explorer?params=_u..nav%3Dmaui&r=all-pages-and-screens";
 	const ENGAGEMENT_OVERVIEW_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=engagement-overview";
+	const TECH_OVERVIEW_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=tech-overview";
 
 	const RANGE_DAYS = {
 		last7days: 7,
@@ -247,6 +248,40 @@
 		});
 	}
 
+	function buildDeviceCategoryRequest(dateRange) {
+		return {
+			dateRanges: [getApiDateRange(dateRange)],
+			dimensions: [{ name: "deviceCategory" }],
+			metrics: [
+				{ name: "sessions" },
+				{ name: "engagementRate" }
+			],
+			orderBys: [{ metric: { metricName: "sessions" }, desc: true }]
+		};
+	}
+
+	function buildDeviceCategoryRows(report) {
+		const rows = report?.rows || [];
+		const totalSessions = rows.reduce((sum, row) => {
+			return sum + (Number(row.metricValues?.[0]?.value) || 0);
+		}, 0);
+
+		return rows.map(row => {
+			const device = String(row.dimensionValues?.[0]?.value || "").trim() || "(not set)";
+			const sessions = Number(row.metricValues?.[0]?.value) || 0;
+			const engagementRate = Number(row.metricValues?.[1]?.value) || 0;
+			const share = totalSessions > 0 ? sessions / totalSessions : 0;
+			return {
+				device,
+				sessions: formatSafeCount(sessions),
+				sessionsRaw: sessions,
+				engagementRate: formatRate(engagementRate),
+				share: Math.round(share * 100),
+				path: TECH_OVERVIEW_PATH
+			};
+		});
+	}
+
 	function buildLandingPagesRequest(dateRange) {
 		return {
 			dateRanges: [getApiDateRange(dateRange)],
@@ -425,6 +460,8 @@
 		buildTopEventRows,
 		buildTrafficSourceRequest,
 		buildTrafficSourceRows,
+		buildDeviceCategoryRequest,
+		buildDeviceCategoryRows,
 		buildLandingPagesRequest,
 		buildLandingPageRows,
 		buildHealthCheckRequest,
@@ -432,7 +469,8 @@
 		EVENTS_REPORT_PATH,
 		TRAFFIC_ACQUISITION_PATH,
 		PAGES_SCREENS_PATH,
-		ENGAGEMENT_OVERVIEW_PATH
+		ENGAGEMENT_OVERVIEW_PATH,
+		TECH_OVERVIEW_PATH
 	};
 
 	if (typeof module !== "undefined" && module.exports) module.exports = api;

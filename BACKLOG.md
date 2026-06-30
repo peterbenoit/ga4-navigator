@@ -54,7 +54,7 @@ Items are checked when fully implemented.
 - [x] **Traffic source breakdown card**
   Fetch sessions and engagement rate by `sessionDefaultChannelGroup` for the selected date range. Display as a compact ranked list. Each row deep-links to Traffic Acquisition filtered to that channel. Flag rows where channel is "Unassigned" and count exceeds 5% of sessions.
 
-- [ ] **Device category snapshot**
+- [x] **Device category snapshot**
   Fetch sessions and engagement rate split by `deviceCategory` (Desktop / Mobile / Tablet). Display as a small card alongside the existing metrics bar. Link to Tech > Tech Overview. Keep the API call lightweight — single-dimension, single-date-range request.
 
 - [ ] **New vs. returning user card**

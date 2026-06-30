@@ -11,10 +11,13 @@ const {
   getTopInsightConfig,
   buildTopInsightRequest,
   buildTopInsightRows,
+  buildDeviceCategoryRequest,
+  buildDeviceCategoryRows,
   buildLandingPagesRequest,
   buildLandingPageRows,
   buildHealthCheckRequest,
-  buildHealthFindings
+  buildHealthFindings,
+  TECH_OVERVIEW_PATH
 } = require("./analytics-utils");
 
 test("getApiDateRange maps saved date range values to GA4 API ranges", () => {
@@ -290,4 +293,85 @@ test("buildHealthFindings reports healthy collection signals", () => {
     "events",
     "key-events"
   ]);
+});
+
+test("buildDeviceCategoryRequest returns correct dimensions and metrics", () => {
+  const request = buildDeviceCategoryRequest("last7days");
+  assert.deepEqual(request.dateRanges, [{ startDate: "7daysAgo", endDate: "today" }]);
+  assert.deepEqual(request.dimensions, [{ name: "deviceCategory" }]);
+  assert.deepEqual(request.metrics, [
+    { name: "sessions" },
+    { name: "engagementRate" }
+  ]);
+  assert.equal(request.orderBys[0].metric.metricName, "sessions");
+  assert.equal(request.orderBys[0].desc, true);
+});
+
+test("buildDeviceCategoryRows calculates sessions, share, and engagement correctly", () => {
+  const report = {
+    rows: [
+      {
+        dimensionValues: [{ value: "desktop" }],
+        metricValues: [{ value: "600" }, { value: "0.75" }]
+      },
+      {
+        dimensionValues: [{ value: "mobile" }],
+        metricValues: [{ value: "300" }, { value: "0.5" }]
+      },
+      {
+        dimensionValues: [{ value: "tablet" }],
+        metricValues: [{ value: "100" }, { value: "0.4" }]
+      }
+    ]
+  };
+
+  const rows = buildDeviceCategoryRows(report);
+  assert.equal(rows.length, 3);
+
+  assert.equal(rows[0].device, "desktop");
+  assert.equal(rows[0].sessions, "600");
+  assert.equal(rows[0].share, 60);
+  assert.equal(rows[0].engagementRate, "75.0%");
+  assert.equal(rows[0].path, TECH_OVERVIEW_PATH);
+
+  assert.equal(rows[1].device, "mobile");
+  assert.equal(rows[1].share, 30);
+
+  assert.equal(rows[2].device, "tablet");
+  assert.equal(rows[2].share, 10);
+});
+
+test("buildDeviceCategoryRows handles empty report", () => {
+  assert.deepEqual(buildDeviceCategoryRows({}), []);
+  assert.deepEqual(buildDeviceCategoryRows(null), []);
+});
+
+test("buildDeviceCategoryRows handles zero total sessions without dividing by zero", () => {
+  const report = {
+    rows: [
+      {
+        dimensionValues: [{ value: "desktop" }],
+        metricValues: [{ value: "0" }, { value: "0" }]
+      }
+    ]
+  };
+  const rows = buildDeviceCategoryRows(report);
+  assert.equal(rows[0].share, 0);
+});
+
+test("buildDeviceCategoryRows falls back to (not set) for missing device name", () => {
+  const report = {
+    rows: [
+      {
+        dimensionValues: [{ value: "" }],
+        metricValues: [{ value: "10" }, { value: "0.5" }]
+      }
+    ]
+  };
+  const rows = buildDeviceCategoryRows(report);
+  assert.equal(rows[0].device, "(not set)");
+});
+
+test("TECH_OVERVIEW_PATH contains tech-overview report identifier", () => {
+  assert.ok(TECH_OVERVIEW_PATH.includes("tech-overview"));
 });

@@ -44,6 +44,7 @@ let healthRequestSequence = 0;
 let landingRequestSequence = 0;
 let trafficRequestSequence = 0;
 let eventsRequestSequence = 0;
+let deviceRequestSequence = 0;
 let selectedTopInsightType = "pages";
 let propertySelectTimer = null;
 let compareMode = false;
@@ -51,6 +52,7 @@ let activeMainTab = "dashboard";
 let landingPagesStale = true;
 let trafficSourceStale = true;
 let topEventsStale = true;
+let deviceCategoryStale = true;
 
 // --- Storage ---
 
@@ -167,7 +169,8 @@ function resolveCollectionParams(path, collection) {
 		"events": isLifeCycle ? "&collectionId=life-cycle&ruid=events,life-cycle,engagement" : "&collectionId=business-objectives&ruid=events,business-objectives,examine-user-behavior",
 		"traffic-acquisition": isLifeCycle ? "&collectionId=life-cycle&ruid=traffic-acquisition,life-cycle,acquisition" : "&collectionId=business-objectives&ruid=traffic-acquisition,business-objectives,acquire-new-users",
 		"demographic-details": isLifeCycle ? "&collectionId=user&ruid=demographics-details,user,demographics" : "&collectionId=business-objectives&ruid=demographic-details,business-objectives,examine-user-behavior",
-		"engagement-overview": isLifeCycle ? "&collectionId=life-cycle&ruid=engagement-overview,life-cycle,engagement" : "&collectionId=business-objectives&ruid=engagement-overview,business-objectives,examine-user-behavior"
+		"engagement-overview": isLifeCycle ? "&collectionId=life-cycle&ruid=engagement-overview,life-cycle,engagement" : "&collectionId=business-objectives&ruid=engagement-overview,business-objectives,examine-user-behavior",
+		"tech-overview": "&collectionId=life-cycle&ruid=tech-overview,life-cycle,tech"
 	};
 
 	for (const [rValue, params] of Object.entries(defs)) {
@@ -1000,6 +1003,127 @@ async function loadTrafficSources(propertyId, interactive = false) {
 	}
 }
 
+// --- Device category snapshot ---
+
+function renderDeviceCategoryRows(rows, propertyId) {
+	const body = document.getElementById("device-category-body");
+	body.innerHTML = "";
+
+	rows.forEach(row => {
+		const tr = document.createElement("tr");
+
+		const deviceCell = document.createElement("td");
+		const link = document.createElement("a");
+		link.href = buildHref(propertyId, row.path, getDateRange());
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.textContent = row.device;
+		link.setAttribute("aria-label", `Open GA4 tech report for ${row.device}`);
+		link.onclick = () => recordRecentReport({
+			label: `Device: ${row.device}`,
+			propertyId,
+			path: row.path
+		});
+		deviceCell.appendChild(link);
+		tr.appendChild(deviceCell);
+
+		[row.sessions, `${row.share}%`, row.engagementRate].forEach(value => {
+			const cell = document.createElement("td");
+			cell.textContent = value;
+			tr.appendChild(cell);
+		});
+
+		body.appendChild(tr);
+	});
+}
+
+async function fetchDeviceCategoryReport(numericId, token, dateRange) {
+	const response = await fetch(`${GA4_API}${numericId}:runReport`, {
+		method: "POST",
+		headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+		body: JSON.stringify(GA4AnalyticsUtils.buildDeviceCategoryRequest(dateRange))
+	});
+	const body = await response.json();
+	if (!response.ok) {
+		const error = new Error(body.error?.message || "Device category API error");
+		error.status = response.status;
+		throw error;
+	}
+	return body;
+}
+
+function showDeviceConnect(propertyId, requestId) {
+	const status = document.getElementById("device-category-status");
+	status.innerHTML = "";
+	const button = document.createElement("button");
+	button.className = "metric-connect";
+	button.type = "button";
+	button.textContent = "Connect Google →";
+	button.addEventListener("click", () => {
+		if (requestId === deviceRequestSequence) loadDeviceCategories(propertyId, true);
+	});
+	status.appendChild(button);
+}
+
+async function loadDeviceCategories(propertyId, interactive = false) {
+	const requestId = ++deviceRequestSequence;
+	const status = document.getElementById("device-category-status");
+	const body = document.getElementById("device-category-body");
+	body.innerHTML = "";
+
+	const numericId = getNumericId(propertyId || "");
+	if (!numericId) {
+		status.textContent = "Add or select a property to view device categories.";
+		return;
+	}
+	if (typeof navigator !== "undefined" && !navigator.onLine) {
+		status.textContent = "No connection. Check your network.";
+		return;
+	}
+	if (typeof chrome === "undefined" || !chrome.identity) {
+		status.textContent = "Device breakdown requires the installed extension.";
+		return;
+	}
+
+	status.textContent = "Loading device categories...";
+
+	let token;
+	try {
+		token = await getIdentityToken(interactive);
+	} catch {
+		if (requestId !== deviceRequestSequence) return;
+		if (!interactive) showDeviceConnect(propertyId, requestId);
+		else status.textContent = "Google authentication failed.";
+		return;
+	}
+
+	try {
+		let report;
+		try {
+			report = await fetchDeviceCategoryReport(numericId, token, getDateRange());
+		} catch (error) {
+			if (!isAuthApiError(error)) throw error;
+			await removeIdentityToken(token);
+			token = await getIdentityToken(true);
+			report = await fetchDeviceCategoryReport(numericId, token, getDateRange());
+		}
+
+		if (requestId !== deviceRequestSequence) return;
+		const rows = GA4AnalyticsUtils.buildDeviceCategoryRows(report);
+		renderDeviceCategoryRows(rows, propertyId);
+		status.textContent = rows.length
+			? `${rows.length} device type${rows.length === 1 ? "" : "s"} · click any row to open in GA4`
+			: "No device data found for this date range.";
+		deviceCategoryStale = false;
+	} catch (error) {
+		if (requestId !== deviceRequestSequence) return;
+		if (error?.status === 429) status.textContent = "Rate limit reached. Try again in a moment.";
+		else if (error?.status === 403) status.textContent = "Analytics permission denied.";
+		else if (error?.status === 401) status.textContent = "Google authentication expired.";
+		else status.textContent = "Device category breakdown unavailable.";
+	}
+}
+
 // --- Top events ---
 
 function renderTopEventRows(rows, hasEnhancedEvent, propertyId) {
@@ -1464,6 +1588,7 @@ function showMain() {
 			landingPagesStale = true;
 			trafficSourceStale = true;
 			topEventsStale = true;
+			deviceCategoryStale = true;
 			clearTimeout(propertySelectTimer);
 			propertySelectTimer = setTimeout(() => {
 				fetchMetrics(properties[i]?.id || "");
@@ -1471,6 +1596,7 @@ function showMain() {
 					loadLandingPages(properties[i]?.id || "");
 					loadTrafficSources(properties[i]?.id || "");
 					loadTopEvents(properties[i]?.id || "");
+					loadDeviceCategories(properties[i]?.id || "");
 				}
 			}, 150);
 		};
@@ -1905,6 +2031,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		if (landingPagesStale) loadLandingPages(property?.id || "");
 		if (trafficSourceStale) loadTrafficSources(property?.id || "");
 		if (topEventsStale) loadTopEvents(property?.id || "");
+		if (deviceCategoryStale) loadDeviceCategories(property?.id || "");
 	});
 
 	window.addEventListener("offline", () => {
@@ -1912,6 +2039,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		if (el) el.innerHTML = `<span class="metric-hint">No connection</span>`;
 		if (activeMainTab === "analysis") {
 			document.getElementById("landing-pages-status").textContent = "No connection. Check your network.";
+			document.getElementById("device-category-status").textContent = "No connection. Check your network.";
 		}
 	});
 
@@ -1922,6 +2050,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			loadLandingPages(property?.id || "");
 			loadTrafficSources(property?.id || "");
 			loadTopEvents(property?.id || "");
+			loadDeviceCategories(property?.id || "");
 		}
 	});
 });

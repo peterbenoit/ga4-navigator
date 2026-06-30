@@ -119,3 +119,10 @@ Without them GA4 silently falls back to the overview page.
 - `FEATURE_IDEAS.md` — longer-horizon ideas and product direction
 - `docs/GA4_Question_Reference.xlsx` — reference spreadsheet mapping analyst questions to
   GA4 reports, dimensions, and metrics. Use this when deciding what data to surface.
+
+
+---
+
+## Human notes
+
+- **Do not** run any npm commands or browser tests, the human will do those - pass along the information to the human for processing
