@@ -149,7 +149,7 @@ test("getTopInsightConfig returns GA4 request settings for top pages", () => {
     secondaryDimension: "pagePath",
     metric: "screenPageViews",
     metricLabel: "Views",
-    path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens"
+    path: "/reports/explorer?params=_u..nav%3Dmaui&r=all-pages-and-screens"
   });
 });
 
@@ -159,7 +159,7 @@ test("getTopInsightConfig returns GA4 request settings for top sources", () => {
     dimension: "sessionSourceMedium",
     metric: "sessions",
     metricLabel: "Sessions",
-    path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=traffic-acquisition,business-objectives,acquire-new-users&r=traffic-acquisition"
+    path: "/reports/dashboard?params=_u..nav%3Dmaui&r=traffic-acquisition"
   });
 });
 

@@ -9,7 +9,7 @@ test("built-in realtime link uses GA4 copied realtime overview route", () => {
 });
 
 test("built-in pages link uses the copied all-pages-and-screens report context", () => {
-  assert.match(popup, /ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens/);
+  assert.match(popup, /&r=all-pages-and-screens/);
 });
 
 test("built-in links do not use stale life-cycle report contexts", () => {

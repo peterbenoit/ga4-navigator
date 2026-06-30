@@ -382,7 +382,7 @@ test("fetchMetrics loads and renders top page insights", async () => {
   assert.deepEqual(requests[2].metrics, [{ name: "screenPageViews" }]);
 
   const row = context.document.getElementById("insight-list").children[0];
-  assert.equal(row.href, "https://analytics.google.com/analytics/web/#/a356198589p490540007/reports/explorer?params=_u..nav%3Dmaui%26_u.date00%3D20260530%26_u.date01%3D20260626&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens");
+  assert.equal(row.href, "https://analytics.google.com/analytics/web/#/a356198589p490540007/reports/explorer?params=_u..nav%3Dmaui%26_u.date00%3D20260530%26_u.date01%3D20260626&r=all-pages-and-screens");
   assert.deepEqual(row.children.map(child => child.textContent), ["Home", "/", "42", "Views"]);
 });
 

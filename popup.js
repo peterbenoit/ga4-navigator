@@ -1,9 +1,9 @@
 const GA4_API = "https://analyticsdata.googleapis.com/v1beta/properties/";
 
 const FALLBACK_REPORT_PATHS = {
-	EVENTS_REPORT_PATH: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=events,business-objectives,examine-user-behavior&r=events",
-	TRAFFIC_ACQUISITION_PATH: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=traffic-acquisition,business-objectives,acquire-new-users&r=traffic-acquisition",
-	PAGES_SCREENS_PATH: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens"
+	EVENTS_REPORT_PATH: "/reports/explorer?params=_u..nav%3Dmaui&r=events",
+	TRAFFIC_ACQUISITION_PATH: "/reports/dashboard?params=_u..nav%3Dmaui&r=traffic-acquisition",
+	PAGES_SCREENS_PATH: "/reports/explorer?params=_u..nav%3Dmaui&r=all-pages-and-screens"
 };
 const REPORT_PATHS = typeof GA4AnalyticsUtils !== "undefined"
 	? { ...FALLBACK_REPORT_PATHS, ...GA4AnalyticsUtils }
@@ -14,14 +14,14 @@ const REPORTS = [
 		section: "Quick Access",
 		items: [
 			{ icon: "🟢", title: "Realtime", desc: "Who's on your site right now", path: "/reports/realtime/overview?params=_u..nav%3Dmaui" },
-			{ icon: "🏠", title: "Home", desc: "Your overview dashboard", path: "/reports/intelligenthome?params=_u..nav%3Dmaui&collectionId=business-objectives" },
-			{ icon: "📋", title: "Reports Snapshot", desc: "Quick summary of everything", path: "/reports/reportinghub?params=_u..nav%3Dmaui&collectionId=business-objectives" }
+			{ icon: "🏠", title: "Home", desc: "Your overview dashboard", path: "/reports/intelligenthome?params=_u..nav%3Dmaui" },
+			{ icon: "📋", title: "Reports Snapshot", desc: "Quick summary of everything", path: "/reports/reportinghub?params=_u..nav%3Dmaui" }
 		]
 	},
 	{
 		section: "Audience",
 		items: [
-			{ icon: "👥", title: "WHO visited", desc: "Countries, cities, languages", path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=demographic-details,business-objectives,examine-user-behavior&r=demographic-details" },
+			{ icon: "👥", title: "WHO visited", desc: "Countries, cities, languages", path: "/reports/explorer?params=_u..nav%3Dmaui&r=demographic-details" },
 			{ icon: "🗺️", title: "HOW they found you", desc: "Google, direct, social, referral", path: REPORT_PATHS.TRAFFIC_ACQUISITION_PATH },
 			{ icon: "📄", title: "WHAT they looked at", desc: "Pages and screens visited", path: REPORT_PATHS.PAGES_SCREENS_PATH },
 			{ icon: "⏱️", title: "Engagement", desc: "Session duration, bounce rate", path: REPORT_PATHS.PAGES_SCREENS_PATH }
