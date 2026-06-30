@@ -3,7 +3,8 @@ const GA4_API = "https://analyticsdata.googleapis.com/v1beta/properties/";
 const FALLBACK_REPORT_PATHS = {
 	EVENTS_REPORT_PATH: "/reports/explorer?params=_u..nav%3Dmaui&r=events",
 	TRAFFIC_ACQUISITION_PATH: "/reports/dashboard?params=_u..nav%3Dmaui&r=traffic-acquisition",
-	PAGES_SCREENS_PATH: "/reports/explorer?params=_u..nav%3Dmaui&r=all-pages-and-screens"
+	PAGES_SCREENS_PATH: "/reports/explorer?params=_u..nav%3Dmaui&r=all-pages-and-screens",
+	ENGAGEMENT_OVERVIEW_PATH: "/reports/dashboard?params=_u..nav%3Dmaui&r=engagement-overview"
 };
 const REPORT_PATHS = typeof GA4AnalyticsUtils !== "undefined"
 	? { ...FALLBACK_REPORT_PATHS, ...GA4AnalyticsUtils }
@@ -24,7 +25,7 @@ const REPORTS = [
 			{ icon: "👥", title: "WHO visited", desc: "Countries, cities, languages", path: "/reports/explorer?params=_u..nav%3Dmaui&r=demographic-details" },
 			{ icon: "🗺️", title: "HOW they found you", desc: "Google, direct, social, referral", path: REPORT_PATHS.TRAFFIC_ACQUISITION_PATH },
 			{ icon: "📄", title: "WHAT they looked at", desc: "Pages and screens visited", path: REPORT_PATHS.PAGES_SCREENS_PATH },
-			{ icon: "⏱️", title: "Engagement", desc: "Session duration, bounce rate", path: REPORT_PATHS.PAGES_SCREENS_PATH }
+			{ icon: "⏱️", title: "Engagement", desc: "Session duration, bounce rate", path: REPORT_PATHS.ENGAGEMENT_OVERVIEW_PATH }
 		]
 	}
 ];
@@ -70,6 +71,7 @@ const STORAGE_DEFAULTS = {
 	ga4_properties: [],
 	ga4_selected: 0,
 	ga4_date_range: "last28days",
+	ga4_collection: "business-objectives",
 	ga4_shortcuts: [],
 	ga4_recent_reports: [],
 	ga4_storage_migrated: false
@@ -95,6 +97,7 @@ function getLegacyStorageState() {
 		ga4_properties: parseLegacyJson("ga4_properties", []),
 		ga4_selected: parseInt(localStorage.getItem("ga4_selected") || "0"),
 		ga4_date_range: localStorage.getItem("ga4_date_range") || "last28days",
+		ga4_collection: localStorage.getItem("ga4_collection") || "business-objectives",
 		ga4_shortcuts: parseLegacyJson("ga4_shortcuts", []),
 		ga4_recent_reports: parseLegacyJson("ga4_recent_reports", [])
 	};
@@ -145,13 +148,40 @@ function getSelectedIndex() { return Number.parseInt(storageState.ga4_selected |
 function saveSelectedIndex(i) { return saveStorageValue("ga4_selected", i); }
 function getDateRange() { return storageState.ga4_date_range || "last28days"; }
 function saveDateRange(r) { return saveStorageValue("ga4_date_range", r); }
+function getCollection() { return storageState.ga4_collection || "business-objectives"; }
+function saveCollection(c) { return saveStorageValue("ga4_collection", c); }
 function getShortcuts() { return storageState.ga4_shortcuts; }
 function saveShortcuts(s) { return saveStorageValue("ga4_shortcuts", s); }
 function getRecentReports() { return storageState.ga4_recent_reports; }
 function saveRecentReports(r) { return saveStorageValue("ga4_recent_reports", r); }
 
+function resolveCollectionParams(path, collection) {
+	let resolved = path;
+	const isLifeCycle = collection === "life-cycle";
+
+	if (resolved.includes("/reports/intelligenthome") || resolved.includes("/reports/reportinghub")) {
+		return resolved + (isLifeCycle ? "&collectionId=life-cycle" : "&collectionId=business-objectives");
+	}
+
+	const defs = {
+		"events": isLifeCycle ? "&collectionId=life-cycle&ruid=events,life-cycle,engagement" : "&collectionId=business-objectives&ruid=events,business-objectives,examine-user-behavior",
+		"traffic-acquisition": isLifeCycle ? "&collectionId=life-cycle&ruid=traffic-acquisition,life-cycle,acquisition" : "&collectionId=business-objectives&ruid=traffic-acquisition,business-objectives,acquire-new-users",
+		"demographic-details": isLifeCycle ? "&collectionId=user&ruid=demographics-details,user,demographics" : "&collectionId=business-objectives&ruid=demographic-details,business-objectives,examine-user-behavior",
+		"engagement-overview": isLifeCycle ? "&collectionId=life-cycle&ruid=engagement-overview,life-cycle,engagement" : "&collectionId=business-objectives&ruid=engagement-overview,business-objectives,examine-user-behavior"
+	};
+
+	for (const [rValue, params] of Object.entries(defs)) {
+		if (resolved.includes(`&r=${rValue}`)) {
+			resolved = resolved.replace(`&r=${rValue}`, `${params}&r=${rValue}`);
+			break;
+		}
+	}
+	return resolved;
+}
+
 function buildHref(propertyId, path, dateRange) {
-	return GA4ShortcutUtils.buildGa4Href(propertyId, path, dateRange);
+	const resolvedPath = resolveCollectionParams(path, getCollection());
+	return GA4ShortcutUtils.buildGa4Href(propertyId, resolvedPath, dateRange);
 }
 
 function updateLinks(propertyId) {
@@ -1458,6 +1488,7 @@ function showAdd() {
 
 function showManage() {
 	showView("manage-view");
+	document.getElementById("ga4-collection-select").value = getCollection();
 	renderManageList();
 	renderShortcutManageList();
 }
@@ -1829,6 +1860,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const property = getProperties()[getSelectedIndex()];
 		runHealthCheck(property?.id || "");
 	};
+
+	document.getElementById("ga4-collection-select").addEventListener("change", (e) => {
+		saveCollection(e.target.value);
+		const props = getProperties();
+		updateLinks(props[getSelectedIndex()]?.id || "");
+	});
 
 	document.getElementById("btn-save").onclick = async () => {
 		const name = document.getElementById("prop-name").value.trim();

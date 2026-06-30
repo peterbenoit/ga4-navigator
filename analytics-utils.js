@@ -4,6 +4,7 @@
 	const EVENTS_REPORT_PATH = "/reports/explorer?params=_u..nav%3Dmaui&r=events";
 	const TRAFFIC_ACQUISITION_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=traffic-acquisition";
 	const PAGES_SCREENS_PATH = "/reports/explorer?params=_u..nav%3Dmaui&r=all-pages-and-screens";
+	const ENGAGEMENT_OVERVIEW_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=engagement-overview";
 
 	const RANGE_DAYS = {
 		last7days: 7,
@@ -430,7 +431,8 @@
 		buildHealthFindings,
 		EVENTS_REPORT_PATH,
 		TRAFFIC_ACQUISITION_PATH,
-		PAGES_SCREENS_PATH
+		PAGES_SCREENS_PATH,
+		ENGAGEMENT_OVERVIEW_PATH
 	};
 
 	if (typeof module !== "undefined" && module.exports) module.exports = api;
