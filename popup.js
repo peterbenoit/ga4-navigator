@@ -166,11 +166,12 @@ function resolveCollectionParams(path, collection) {
 	}
 
 	const defs = {
-		"events": isLifeCycle ? "&collectionId=life-cycle&ruid=events,life-cycle,engagement" : "&collectionId=business-objectives&ruid=events,business-objectives,examine-user-behavior",
-		"traffic-acquisition": isLifeCycle ? "&collectionId=life-cycle&ruid=traffic-acquisition,life-cycle,acquisition" : "&collectionId=business-objectives&ruid=traffic-acquisition,business-objectives,acquire-new-users",
+		"top-events": "&collectionId=business-objectives&ruid=top-events,business-objectives,examine-user-behavior",
+		"lifecycle-traffic-acquisition-v2": "&collectionId=business-objectives&ruid=lifecycle-traffic-acquisition-v2,business-objectives,generate-leads",
+		"all-pages-and-screens": "&collectionId=life-cycle",
 		"demographic-details": isLifeCycle ? "&collectionId=user&ruid=demographics-details,user,demographics" : "&collectionId=business-objectives&ruid=demographic-details,business-objectives,examine-user-behavior",
 		"engagement-overview": isLifeCycle ? "&collectionId=life-cycle&ruid=engagement-overview,life-cycle,engagement" : "&collectionId=business-objectives&ruid=engagement-overview,business-objectives,examine-user-behavior",
-		"tech-overview": "&collectionId=life-cycle&ruid=tech-overview,life-cycle,tech"
+		"user-technology-overview": "&collectionId=life-cycle&ruid=user-technology-overview,life-cycle,tech"
 	};
 
 	for (const [rValue, params] of Object.entries(defs)) {

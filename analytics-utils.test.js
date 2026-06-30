@@ -372,6 +372,6 @@ test("buildDeviceCategoryRows falls back to (not set) for missing device name", 
   assert.equal(rows[0].device, "(not set)");
 });
 
-test("TECH_OVERVIEW_PATH contains tech-overview report identifier", () => {
-  assert.ok(TECH_OVERVIEW_PATH.includes("tech-overview"));
+test("TECH_OVERVIEW_PATH contains user-technology-overview report identifier", () => {
+  assert.ok(TECH_OVERVIEW_PATH.includes("user-technology-overview"));
 });

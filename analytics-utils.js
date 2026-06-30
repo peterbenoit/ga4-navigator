@@ -1,11 +1,11 @@
 (function (root) {
 	"use strict";
 
-	const EVENTS_REPORT_PATH = "/reports/explorer?params=_u..nav%3Dmaui&r=events";
-	const TRAFFIC_ACQUISITION_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=traffic-acquisition";
+	const EVENTS_REPORT_PATH = "/reports/explorer?params=_u..nav%3Dmaui&r=top-events";
+	const TRAFFIC_ACQUISITION_PATH = "/reports/explorer?params=_u..nav%3Dmaui&r=lifecycle-traffic-acquisition-v2";
 	const PAGES_SCREENS_PATH = "/reports/explorer?params=_u..nav%3Dmaui&r=all-pages-and-screens";
 	const ENGAGEMENT_OVERVIEW_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=engagement-overview";
-	const TECH_OVERVIEW_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=tech-overview";
+	const TECH_OVERVIEW_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=user-technology-overview";
 
 	const RANGE_DAYS = {
 		last7days: 7,
