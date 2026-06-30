@@ -46,6 +46,7 @@ let trafficRequestSequence = 0;
 let eventsRequestSequence = 0;
 let deviceRequestSequence = 0;
 let newVsReturningRequestSequence = 0;
+let siteSearchRequestSequence = 0;
 let selectedTopInsightType = "pages";
 let propertySelectTimer = null;
 let compareMode = false;
@@ -55,6 +56,7 @@ let trafficSourceStale = true;
 let topEventsStale = true;
 let deviceCategoryStale = true;
 let newVsReturningStale = true;
+let siteSearchStale = true;
 
 // --- Storage ---
 
@@ -400,11 +402,13 @@ function renderDatePills() {
 			trafficSourceStale = true;
 			topEventsStale = true;
 			newVsReturningStale = true;
+			siteSearchStale = true;
 			if (activeMainTab === "analysis") {
 				loadLandingPages(props[getSelectedIndex()]?.id || "");
 				loadTrafficSources(props[getSelectedIndex()]?.id || "");
 				loadTopEvents(props[getSelectedIndex()]?.id || "");
 				loadNewVsReturning(props[getSelectedIndex()]?.id || "");
+				loadSiteSearch(props[getSelectedIndex()]?.id || "");
 			}
 			renderDatePills();
 		};
@@ -590,6 +594,30 @@ function renderDashboard(metrics) {
 	});
 
 	resetAiDigest(metrics);
+
+	const copyBtn = document.getElementById("btn-copy-summary");
+	if (copyBtn) copyBtn.hidden = metrics.length === 0;
+}
+
+function copyMetricsSummary() {
+	if (!lastDigestMetrics) return;
+	const props = getProperties();
+	const idx = getSelectedIndex();
+	const propertyLabel = props[idx]?.label || "this property";
+	const dateRange = getDateRange();
+	const markdown = GA4AnalyticsUtils.buildMarkdownSummary(lastDigestMetrics, propertyLabel, dateRange);
+
+	const btn = document.getElementById("btn-copy-summary");
+	const orig = btn.textContent;
+	navigator.clipboard.writeText(markdown)
+		.then(() => {
+			btn.textContent = "✅ Copied!";
+			setTimeout(() => { btn.textContent = orig; }, 1500);
+		})
+		.catch(() => {
+			btn.textContent = "⚠️ Copy failed";
+			setTimeout(() => { btn.textContent = orig; }, 1500);
+		});
 }
 
 // --- AI Digest ---
@@ -883,32 +911,26 @@ async function loadTopInsights(numericId, propertyId, token, dateRange, requestI
 
 function renderTrafficSourceRows(rows, propertyId) {
 	const body = document.getElementById("traffic-source-body");
+	const footer = document.getElementById("traffic-source-footer");
 	body.innerHTML = "";
+	footer.innerHTML = "";
+	footer.hidden = true;
 
 	rows.forEach(row => {
 		const tr = document.createElement("tr");
 		if (row.flagUnassigned) tr.classList.add("traffic-row-warning");
 
 		const channelCell = document.createElement("td");
-		const link = document.createElement("a");
-		link.href = buildHref(propertyId, row.path, getDateRange());
-		link.target = "_blank";
-		link.rel = "noopener noreferrer";
-		link.textContent = row.channel;
+		const label = document.createElement("span");
+		label.textContent = row.channel;
 		if (row.flagUnassigned) {
 			const flag = document.createElement("span");
 			flag.className = "traffic-flag";
 			flag.title = "High Unassigned traffic may indicate missing UTM parameters";
 			flag.textContent = "⚠";
-			link.appendChild(flag);
+			label.appendChild(flag);
 		}
-		link.setAttribute("aria-label", `Open GA4 traffic report for ${row.channel}`);
-		link.onclick = () => recordRecentReport({
-			label: `Traffic: ${row.channel}`,
-			propertyId,
-			path: row.path
-		});
-		channelCell.appendChild(link);
+		channelCell.appendChild(label);
 		tr.appendChild(channelCell);
 
 		[row.sessions, `${row.share}%`, row.engagementRate].forEach(value => {
@@ -919,6 +941,21 @@ function renderTrafficSourceRows(rows, propertyId) {
 
 		body.appendChild(tr);
 	});
+
+	if (rows.length) {
+		const link = document.createElement("a");
+		link.href = buildHref(propertyId, GA4AnalyticsUtils.TRAFFIC_ACQUISITION_PATH, getDateRange());
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.textContent = "Open Traffic Acquisition report →";
+		link.onclick = () => recordRecentReport({
+			label: "Traffic Acquisition",
+			propertyId,
+			path: GA4AnalyticsUtils.TRAFFIC_ACQUISITION_PATH
+		});
+		footer.appendChild(link);
+		footer.hidden = false;
+	}
 }
 
 async function fetchTrafficSourceReport(numericId, token, dateRange) {
@@ -996,7 +1033,7 @@ async function loadTrafficSources(propertyId, interactive = false) {
 		const rows = GA4AnalyticsUtils.buildTrafficSourceRows(report);
 		renderTrafficSourceRows(rows, propertyId);
 		status.textContent = rows.length
-			? `${rows.length} channel${rows.length === 1 ? "" : "s"} · click any row to open in GA4`
+			? `${rows.length} channel${rows.length === 1 ? "" : "s"}`
 			: "No traffic sources found for this date range.";
 		trafficSourceStale = false;
 	} catch (error) {
@@ -1012,24 +1049,16 @@ async function loadTrafficSources(propertyId, interactive = false) {
 
 function renderDeviceCategoryRows(rows, propertyId) {
 	const body = document.getElementById("device-category-body");
+	const footer = document.getElementById("device-category-footer");
 	body.innerHTML = "";
+	footer.innerHTML = "";
+	footer.hidden = true;
 
 	rows.forEach(row => {
 		const tr = document.createElement("tr");
 
 		const deviceCell = document.createElement("td");
-		const link = document.createElement("a");
-		link.href = buildHref(propertyId, row.path, getDateRange());
-		link.target = "_blank";
-		link.rel = "noopener noreferrer";
-		link.textContent = row.device;
-		link.setAttribute("aria-label", `Open GA4 tech report for ${row.device}`);
-		link.onclick = () => recordRecentReport({
-			label: `Device: ${row.device}`,
-			propertyId,
-			path: row.path
-		});
-		deviceCell.appendChild(link);
+		deviceCell.textContent = row.device;
 		tr.appendChild(deviceCell);
 
 		[row.sessions, `${row.share}%`, row.engagementRate].forEach(value => {
@@ -1040,6 +1069,21 @@ function renderDeviceCategoryRows(rows, propertyId) {
 
 		body.appendChild(tr);
 	});
+
+	if (rows.length) {
+		const link = document.createElement("a");
+		link.href = buildHref(propertyId, GA4AnalyticsUtils.TECH_OVERVIEW_PATH, getDateRange());
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.textContent = "Open Tech Overview report →";
+		link.onclick = () => recordRecentReport({
+			label: "Tech Overview",
+			propertyId,
+			path: GA4AnalyticsUtils.TECH_OVERVIEW_PATH
+		});
+		footer.appendChild(link);
+		footer.hidden = false;
+	}
 }
 
 async function fetchDeviceCategoryReport(numericId, token, dateRange) {
@@ -1117,7 +1161,7 @@ async function loadDeviceCategories(propertyId, interactive = false) {
 		const rows = GA4AnalyticsUtils.buildDeviceCategoryRows(report);
 		renderDeviceCategoryRows(rows, propertyId);
 		status.textContent = rows.length
-			? `${rows.length} device type${rows.length === 1 ? "" : "s"} · click any row to open in GA4`
+			? `${rows.length} device type${rows.length === 1 ? "" : "s"}`
 			: "No device data found for this date range.";
 		deviceCategoryStale = false;
 	} catch (error) {
@@ -1135,8 +1179,7 @@ function renderNewVsReturning(data, propertyId) {
 	const body = document.getElementById("new-vs-returning-body");
 	body.innerHTML = "";
 
-	const ga4Base = buildGA4Url(propertyId);
-	const retentionHref = ga4Base + GA4AnalyticsUtils.RETENTION_PATH;
+	const retentionHref = buildHref(propertyId, GA4AnalyticsUtils.RETENTION_PATH, getDateRange());
 
 	const rows = [
 		{ label: "New", count: data.newUsersFormatted, share: data.newShare, barClass: "nvr-bar-new" },
@@ -1274,6 +1317,139 @@ async function loadNewVsReturning(propertyId, interactive = false) {
 	}
 }
 
+// --- Site search ---
+
+function renderSiteSearchRows(rows, propertyId) {
+	const body = document.getElementById("site-search-body");
+	const footer = document.getElementById("site-search-footer");
+	body.innerHTML = "";
+	footer.innerHTML = "";
+	footer.hidden = true;
+
+	rows.forEach(row => {
+		const tr = document.createElement("tr");
+		const termCell = document.createElement("td");
+		termCell.textContent = row.term;
+		tr.appendChild(termCell);
+
+		const countCell = document.createElement("td");
+		countCell.textContent = row.count;
+		tr.appendChild(countCell);
+
+		body.appendChild(tr);
+	});
+
+	if (rows.length) {
+		const link = document.createElement("a");
+		link.href = buildHref(propertyId, GA4AnalyticsUtils.EVENTS_REPORT_PATH, getDateRange());
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.textContent = "Open Events report →";
+		link.onclick = () => recordRecentReport({
+			label: "Site Search",
+			propertyId,
+			path: GA4AnalyticsUtils.EVENTS_REPORT_PATH
+		});
+		footer.appendChild(link);
+		footer.hidden = false;
+	}
+}
+
+async function fetchSiteSearchReport(numericId, token, dateRange) {
+	const response = await fetch(`${GA4_API}${numericId}:runReport`, {
+		method: "POST",
+		headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+		body: JSON.stringify(GA4AnalyticsUtils.buildSiteSearchRequest(dateRange))
+	});
+	const body = await response.json();
+	if (!response.ok) {
+		const error = new Error(body.error?.message || "Site search API error");
+		error.status = response.status;
+		throw error;
+	}
+	return body;
+}
+
+function showSiteSearchConnect(propertyId, requestId) {
+	const status = document.getElementById("site-search-status");
+	status.innerHTML = "";
+	const button = document.createElement("button");
+	button.className = "metric-connect";
+	button.type = "button";
+	button.textContent = "Connect Google →";
+	button.addEventListener("click", () => {
+		if (requestId === siteSearchRequestSequence) loadSiteSearch(propertyId, true);
+	});
+	status.appendChild(button);
+}
+
+async function loadSiteSearch(propertyId, interactive = false) {
+	const requestId = ++siteSearchRequestSequence;
+	const status = document.getElementById("site-search-status");
+	const notice = document.getElementById("site-search-notice");
+	const body = document.getElementById("site-search-body");
+	const footer = document.getElementById("site-search-footer");
+	body.innerHTML = "";
+	footer.hidden = true;
+	notice.hidden = true;
+
+	const numericId = getNumericId(propertyId || "");
+	if (!numericId) {
+		status.textContent = "Add or select a property to view site search terms.";
+		return;
+	}
+	if (typeof navigator !== "undefined" && !navigator.onLine) {
+		status.textContent = "No connection. Check your network.";
+		return;
+	}
+	if (typeof chrome === "undefined" || !chrome.identity) {
+		status.textContent = "Site search requires the installed extension.";
+		return;
+	}
+
+	status.textContent = "Loading search terms...";
+
+	let token;
+	try {
+		token = await getIdentityToken(interactive);
+	} catch {
+		if (requestId !== siteSearchRequestSequence) return;
+		if (!interactive) showSiteSearchConnect(propertyId, requestId);
+		else status.textContent = "Google authentication failed.";
+		return;
+	}
+
+	try {
+		let report;
+		try {
+			report = await fetchSiteSearchReport(numericId, token, getDateRange());
+		} catch (error) {
+			if (!isAuthApiError(error)) throw error;
+			await removeIdentityToken(token);
+			token = await getIdentityToken(true);
+			report = await fetchSiteSearchReport(numericId, token, getDateRange());
+		}
+
+		if (requestId !== siteSearchRequestSequence) return;
+		const rows = GA4AnalyticsUtils.buildSiteSearchRows(report);
+		renderSiteSearchRows(rows, propertyId);
+		if (rows.length) {
+			status.textContent = `${rows.length} search term${rows.length === 1 ? "" : "s"}`;
+		} else {
+			status.textContent = "No search terms found for this date range.";
+			notice.textContent = "Site search may not be configured. Check GA4 Admin → Data Streams → Enhanced Measurement → Site Search.";
+			notice.hidden = false;
+		}
+		siteSearchStale = false;
+	} catch (error) {
+		if (requestId !== siteSearchRequestSequence) return;
+		if (error?.status === 429) status.textContent = "Rate limit reached. Try again in a moment.";
+		else if (error?.status === 403) status.textContent = "Analytics permission denied.";
+		else if (error?.status === 401) status.textContent = "Google authentication expired.";
+		else status.textContent = "Site search data unavailable.";
+	}
+}
+
 // --- Top events ---
 
 function renderTopEventRows(rows, hasEnhancedEvent, propertyId) {
@@ -1288,30 +1464,25 @@ function renderTopEventRows(rows, hasEnhancedEvent, propertyId) {
 		notice.hidden = true;
 	}
 
+	const footer = document.getElementById("top-events-footer");
+	footer.innerHTML = "";
+	footer.hidden = true;
+
 	rows.forEach(row => {
 		const tr = document.createElement("tr");
 		if (row.isEnhanced) tr.classList.add("event-row-enhanced");
 
 		const nameCell = document.createElement("td");
-		const link = document.createElement("a");
-		link.href = buildHref(propertyId, row.path, getDateRange());
-		link.target = "_blank";
-		link.rel = "noopener noreferrer";
-		link.textContent = row.name;
+		const label = document.createElement("span");
+		label.textContent = row.name;
 		if (row.isEnhanced) {
 			const badge = document.createElement("span");
 			badge.className = "event-enhanced-badge";
 			badge.title = "Auto-collected by GA4 enhanced measurement";
 			badge.textContent = "auto";
-			link.appendChild(badge);
+			label.appendChild(badge);
 		}
-		link.setAttribute("aria-label", `Open GA4 events report for ${row.name}`);
-		link.onclick = () => recordRecentReport({
-			label: `Event: ${row.name}`,
-			propertyId,
-			path: row.path
-		});
-		nameCell.appendChild(link);
+		nameCell.appendChild(label);
 		tr.appendChild(nameCell);
 
 		[row.count, row.users].forEach(value => {
@@ -1322,6 +1493,21 @@ function renderTopEventRows(rows, hasEnhancedEvent, propertyId) {
 
 		body.appendChild(tr);
 	});
+
+	if (rows.length) {
+		const link = document.createElement("a");
+		link.href = buildHref(propertyId, GA4AnalyticsUtils.EVENTS_REPORT_PATH, getDateRange());
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.textContent = "Open Events report →";
+		link.onclick = () => recordRecentReport({
+			label: "Top Events",
+			propertyId,
+			path: GA4AnalyticsUtils.EVENTS_REPORT_PATH
+		});
+		footer.appendChild(link);
+		footer.hidden = false;
+	}
 }
 
 async function fetchTopEventsReport(numericId, token, dateRange) {
@@ -1401,7 +1587,7 @@ async function loadTopEvents(propertyId, interactive = false) {
 		const { rows, hasEnhancedEvent } = GA4AnalyticsUtils.buildTopEventRows(report);
 		renderTopEventRows(rows, hasEnhancedEvent, propertyId);
 		status.textContent = rows.length
-			? `Top ${rows.length} events · click any row to open in GA4`
+			? `Top ${rows.length} events`
 			: "No events found for this date range.";
 		topEventsStale = false;
 	} catch (error) {
@@ -1417,23 +1603,15 @@ async function loadTopEvents(propertyId, interactive = false) {
 
 function renderLandingPageRows(rows, propertyId) {
 	const body = document.getElementById("landing-pages-body");
+	const footer = document.getElementById("landing-pages-footer");
 	body.innerHTML = "";
+	footer.innerHTML = "";
+	footer.hidden = true;
 
 	rows.forEach(row => {
 		const tr = document.createElement("tr");
 		const pathCell = document.createElement("td");
-		const link = document.createElement("a");
-		link.href = buildHref(propertyId, LANDING_PAGES_PATH, getDateRange());
-		link.target = "_blank";
-		link.rel = "noopener noreferrer";
-		link.textContent = row.path;
-		link.setAttribute("aria-label", `Open GA4 landing page report for ${row.path}`);
-		link.onclick = () => recordRecentReport({
-			label: `Landing page: ${row.path}`,
-			propertyId,
-			path: LANDING_PAGES_PATH
-		});
-		pathCell.appendChild(link);
+		pathCell.textContent = row.path;
 		tr.appendChild(pathCell);
 
 		[row.sessions, row.engagementRate, row.bounceRate].forEach(value => {
@@ -1444,6 +1622,21 @@ function renderLandingPageRows(rows, propertyId) {
 
 		body.appendChild(tr);
 	});
+
+	if (rows.length) {
+		const link = document.createElement("a");
+		link.href = buildHref(propertyId, LANDING_PAGES_PATH, getDateRange());
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		link.textContent = "Open Landing Pages report →";
+		link.onclick = () => recordRecentReport({
+			label: "Landing Pages",
+			propertyId,
+			path: LANDING_PAGES_PATH
+		});
+		footer.appendChild(link);
+		footer.hidden = false;
+	}
 }
 
 async function fetchLandingPageReport(numericId, token, dateRange) {
@@ -1740,6 +1933,7 @@ function showMain() {
 			topEventsStale = true;
 			deviceCategoryStale = true;
 			newVsReturningStale = true;
+			siteSearchStale = true;
 			clearTimeout(propertySelectTimer);
 			propertySelectTimer = setTimeout(() => {
 				fetchMetrics(properties[i]?.id || "");
@@ -1749,6 +1943,7 @@ function showMain() {
 					loadTopEvents(properties[i]?.id || "");
 					loadDeviceCategories(properties[i]?.id || "");
 					loadNewVsReturning(properties[i]?.id || "");
+					loadSiteSearch(properties[i]?.id || "");
 				}
 			}, 150);
 		};
@@ -2175,6 +2370,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 	};
 
 	document.getElementById("btn-import-apply").onclick = importProperties;
+	document.getElementById("btn-copy-summary")?.addEventListener("click", copyMetricsSummary);
 
 	document.addEventListener("ga4-tab-change", event => {
 		activeMainTab = event.detail?.tab || "dashboard";
@@ -2185,6 +2381,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		if (topEventsStale) loadTopEvents(property?.id || "");
 		if (deviceCategoryStale) loadDeviceCategories(property?.id || "");
 		if (newVsReturningStale) loadNewVsReturning(property?.id || "");
+		if (siteSearchStale) loadSiteSearch(property?.id || "");
 	});
 
 	window.addEventListener("offline", () => {
@@ -2194,6 +2391,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			document.getElementById("landing-pages-status").textContent = "No connection. Check your network.";
 			document.getElementById("device-category-status").textContent = "No connection. Check your network.";
 			document.getElementById("new-vs-returning-status").textContent = "No connection. Check your network.";
+			document.getElementById("site-search-status").textContent = "No connection. Check your network.";
 		}
 	});
 
@@ -2206,6 +2404,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			loadTopEvents(property?.id || "");
 			loadDeviceCategories(property?.id || "");
 			loadNewVsReturning(property?.id || "");
+			loadSiteSearch(property?.id || "");
 		}
 	});
 });

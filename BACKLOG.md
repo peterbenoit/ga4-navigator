@@ -60,7 +60,7 @@ Items are checked when fully implemented.
 - [x] **New vs. returning user card**
   Fetch `newUsers` and `activeUsers` for the selected date range. Derive returning users. Display as a ratio card with a link to the Retention report.
 
-- [ ] **Site search term viewer**
+- [x] **Site search term viewer**
   Fetch top 10 `searchTerm` dimension values from the `view_search_results` event using the GA4 Data API. Display with event counts. Link to Events report filtered to the search event. Show a setup warning if no results are returned (enhanced measurement may not be configured).
 
 - [ ] **Dark mode CSS token support**

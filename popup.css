@@ -394,6 +394,19 @@ a {
 	cursor: help;
 }
 
+/* ─── ANALYSIS PANEL FOOTER ─────────────────── */
+
+.analysis-footer {
+	padding: 8px 16px 10px;
+	border-top: 1px solid var(--border);
+	text-align: right;
+}
+
+.analysis-footer a {
+	font-size: 10px;
+	color: var(--text-muted);
+}
+
 /* ─── NEW VS. RETURNING CARD ────────────────── */
 
 .nvr-card {
@@ -479,6 +492,22 @@ a {
 	min-height: 22px;
 	color: var(--text-muted);
 	font-size: 12px;
+}
+
+.btn-copy-summary {
+	flex-shrink: 0;
+	padding: 5px 9px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm, 6px);
+	background: var(--surface);
+	color: var(--text-muted);
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.btn-copy-summary:hover {
+	border-color: var(--blue);
+	color: var(--blue);
 }
 
 .metric-hint {

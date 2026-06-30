@@ -283,6 +283,31 @@
 		});
 	}
 
+	function buildSiteSearchRequest(dateRange) {
+		return {
+			dateRanges: [getApiDateRange(dateRange)],
+			dimensions: [{ name: "searchTerm" }],
+			metrics: [{ name: "eventCount" }],
+			dimensionFilter: {
+				filter: {
+					fieldName: "eventName",
+					inListFilter: { values: ["view_search_results", "search"] }
+				}
+			},
+			orderBys: [{ metric: { metricName: "eventCount" }, desc: true }],
+			limit: 10
+		};
+	}
+
+	function buildSiteSearchRows(report) {
+		return (report?.rows || [])
+			.map(row => ({
+				term: String(row.dimensionValues?.[0]?.value || "").trim(),
+				count: formatSafeCount(row.metricValues?.[0]?.value)
+			}))
+			.filter(row => row.term);
+	}
+
 	function buildNewVsReturningRequest(dateRange) {
 		return {
 			dateRanges: [getApiDateRange(dateRange)],
@@ -482,6 +507,42 @@
 		return metrics;
 	}
 
+	const DATE_RANGE_LABELS = {
+		last7days: "the last 7 days",
+		last28days: "the last 28 days",
+		last90days: "the last 90 days"
+	};
+
+	function buildMarkdownSummary(metrics, propertyLabel, dateRange, generatedAt = new Date()) {
+		const period = DATE_RANGE_LABELS[dateRange] || dateRange;
+		const lines = (metrics || [])
+			.filter(metric => metric.label !== "Live")
+			.map(metric => {
+				let line = `- **${metric.label}:** ${metric.value}`;
+				if (metric.delta && metric.delta.state !== "unavailable") {
+					if (metric.delta.state === "unchanged") {
+						line += " (unchanged vs prior period)";
+					} else if (metric.delta.state === "new") {
+						line += " (new activity, no prior period data)";
+					} else if (metric.delta.percent !== null) {
+						const dir = metric.delta.absolute > 0 ? "up" : "down";
+						line += ` (${dir} ${Math.abs(metric.delta.percent)}% vs prior period)`;
+					}
+				}
+				return line;
+			});
+
+		const live = (metrics || []).find(metric => metric.label === "Live");
+		if (live) lines.push(`- **Live users right now:** ${live.value}`);
+
+		const timestamp = generatedAt.toISOString().replace("T", " ").slice(0, 16) + " UTC";
+
+		return `## GA4 Summary — ${propertyLabel}\n\n` +
+			`Period: ${period}\n` +
+			`Generated: ${timestamp}\n\n` +
+			lines.join("\n") + "\n";
+	}
+
 	const api = {
 		getApiDateRange,
 		getComparisonDateRanges,
@@ -489,6 +550,7 @@
 		buildOverviewRequest,
 		buildRealtimeRequest,
 		buildDashboardMetrics,
+		buildMarkdownSummary,
 		getTopInsightConfig,
 		buildTopInsightRequest,
 		buildTopInsightRows,
@@ -500,6 +562,8 @@
 		buildDeviceCategoryRows,
 		buildNewVsReturningRequest,
 		buildNewVsReturningData,
+		buildSiteSearchRequest,
+		buildSiteSearchRows,
 		buildLandingPagesRequest,
 		buildLandingPageRows,
 		buildHealthCheckRequest,

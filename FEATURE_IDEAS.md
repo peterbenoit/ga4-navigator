@@ -53,7 +53,7 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
 - [ ] **Saved report bundles**
   Named bundles that open a set of reports for a repeated workflow. Respects selected property and date range.
 
-- [ ] **Exportable quick reports**
+- [x] **Exportable quick reports**
   Generates a Markdown summary from normalized metrics. Includes property name, date range, and timestamp. Copies to clipboard. Does not require an AI provider.
 
 - [x] **Plain-English metric digest (on-device AI)**

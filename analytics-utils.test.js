@@ -8,6 +8,7 @@ const {
   buildOverviewRequest,
   buildRealtimeRequest,
   buildDashboardMetrics,
+  buildMarkdownSummary,
   getTopInsightConfig,
   buildTopInsightRequest,
   buildTopInsightRows,
@@ -19,6 +20,8 @@ const {
   buildHealthFindings,
   buildNewVsReturningRequest,
   buildNewVsReturningData,
+  buildSiteSearchRequest,
+  buildSiteSearchRows,
   TECH_OVERVIEW_PATH,
   RETENTION_PATH
 } = require("./analytics-utils");
@@ -433,4 +436,87 @@ test("buildNewVsReturningData handles only new users", () => {
 
 test("RETENTION_PATH contains retention report identifier", () => {
   assert.ok(RETENTION_PATH.includes("retention"));
+});
+
+test("buildSiteSearchRequest filters to search events and orders by count", () => {
+  const request = buildSiteSearchRequest("last7days");
+  assert.deepEqual(request.dateRanges, [{ startDate: "7daysAgo", endDate: "today" }]);
+  assert.deepEqual(request.dimensions, [{ name: "searchTerm" }]);
+  assert.deepEqual(request.metrics, [{ name: "eventCount" }]);
+  assert.deepEqual(request.dimensionFilter.filter.fieldName, "eventName");
+  assert.deepEqual(request.dimensionFilter.filter.inListFilter.values, [
+    "view_search_results",
+    "search"
+  ]);
+  assert.ok(request.orderBys[0].desc);
+  assert.equal(request.limit, 10);
+});
+
+test("buildSiteSearchRows maps terms and counts", () => {
+  const report = {
+    rows: [
+      { dimensionValues: [{ value: "shoes" }], metricValues: [{ value: "42" }] },
+      { dimensionValues: [{ value: "returns policy" }], metricValues: [{ value: "10" }] }
+    ]
+  };
+  const rows = buildSiteSearchRows(report);
+  assert.deepEqual(rows, [
+    { term: "shoes", count: "42" },
+    { term: "returns policy", count: "10" }
+  ]);
+});
+
+test("buildSiteSearchRows filters out empty search terms", () => {
+  const report = {
+    rows: [
+      { dimensionValues: [{ value: "" }], metricValues: [{ value: "5" }] },
+      { dimensionValues: [{ value: "  " }], metricValues: [{ value: "3" }] },
+      { dimensionValues: [{ value: "valid term" }], metricValues: [{ value: "7" }] }
+    ]
+  };
+  const rows = buildSiteSearchRows(report);
+  assert.deepEqual(rows, [{ term: "valid term", count: "7" }]);
+});
+
+test("buildSiteSearchRows handles empty and null reports", () => {
+  assert.deepEqual(buildSiteSearchRows({}), []);
+  assert.deepEqual(buildSiteSearchRows(null), []);
+});
+
+test("buildMarkdownSummary formats metrics with deltas and period", () => {
+  const metrics = [
+    { label: "Sessions", value: "1,200", delta: { state: "changed", percent: 12.5, absolute: 150 } },
+    { label: "Users", value: "900", delta: { state: "unchanged" } },
+    { label: "Views", value: "3,400", delta: { state: "new" } },
+    { label: "Events", value: "500", delta: { state: "unavailable" } },
+    { label: "Live", value: "7", delta: null }
+  ];
+  const generatedAt = new Date("2026-06-30T14:05:00Z");
+  const markdown = buildMarkdownSummary(metrics, "peterbenoit.com", "last28days", generatedAt);
+
+  assert.ok(markdown.includes("## GA4 Summary — peterbenoit.com"));
+  assert.ok(markdown.includes("Period: the last 28 days"));
+  assert.ok(markdown.includes("Generated: 2026-06-30 14:05 UTC"));
+  assert.ok(markdown.includes("- **Sessions:** 1,200 (up 12.5% vs prior period)"));
+  assert.ok(markdown.includes("- **Users:** 900 (unchanged vs prior period)"));
+  assert.ok(markdown.includes("- **Views:** 3,400 (new activity, no prior period data)"));
+  assert.ok(markdown.includes("- **Events:** 500"));
+  assert.ok(!markdown.includes("- **Events:** 500 ("));
+  assert.ok(markdown.includes("- **Live users right now:** 7"));
+});
+
+test("buildMarkdownSummary falls back to raw date range for unknown values", () => {
+  const markdown = buildMarkdownSummary([], "Test Property", "custom30");
+  assert.ok(markdown.includes("Period: custom30"));
+});
+
+test("buildMarkdownSummary handles empty metrics", () => {
+  const markdown = buildMarkdownSummary([], "Test Property", "last7days");
+  assert.ok(markdown.includes("## GA4 Summary — Test Property"));
+  assert.ok(markdown.includes("Period: the last 7 days"));
+});
+
+test("buildMarkdownSummary handles null metrics", () => {
+  const markdown = buildMarkdownSummary(null, "Test Property", "last7days");
+  assert.ok(markdown.includes("## GA4 Summary — Test Property"));
 });
