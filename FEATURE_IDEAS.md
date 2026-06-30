@@ -131,6 +131,12 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
 - [ ] **Trends & comparison quick picks**
   One-click date comparison presets beyond prior period: same week last year, same month last year, last 90 days vs prior 90. Applied to whatever report or metric card is active. Helps answer YoY and long-term trend questions without manually setting GA4 date pickers.
 
+- [ ] **Campaign performance card**
+  Shows sessions, engaged sessions, engagement rate, and conversions broken down by `sessionCampaign` for the selected date range. Surfaces cost and cost-per-session when a linked Google Ads account is available. Flags campaigns with sessions but no UTM medium/source as a likely tagging gap. Row click opens Traffic Acquisition filtered to that campaign.
+
+- [ ] **Audience and demographics snapshot**
+  Compact breakdown of country/region, age, gender, and language for the selected property and date range, pulled from `Reports > User > Demographics`. Notes when Google Signals is required and shows an "unknown" share where data is unavailable. Includes a VA-region view comparing engagement and conversions by region. Links to the matching GA4 Demographics report.
+
 ## Larger / Later Ideas
 
 - [ ] **Page-specific GA4 context**
