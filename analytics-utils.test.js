@@ -153,6 +153,16 @@ test("getTopInsightConfig returns GA4 request settings for top pages", () => {
   });
 });
 
+test("getTopInsightConfig returns GA4 request settings for top sources", () => {
+  assert.deepEqual(getTopInsightConfig("sources"), {
+    label: "Sources",
+    dimension: "sessionSourceMedium",
+    metric: "sessions",
+    metricLabel: "Sessions",
+    path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=traffic-acquisition,business-objectives,acquire-new-users&r=traffic-acquisition"
+  });
+});
+
 test("buildTopInsightRequest creates the selected ranked report payload", () => {
   assert.deepEqual(buildTopInsightRequest("pages", "last7days"), {
     dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],

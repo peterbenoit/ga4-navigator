@@ -1,6 +1,10 @@
 (function (root) {
 	"use strict";
 
+	const EVENTS_REPORT_PATH = "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=events,business-objectives,examine-user-behavior&r=events";
+	const TRAFFIC_ACQUISITION_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=traffic-acquisition,business-objectives,acquire-new-users&r=traffic-acquisition";
+	const PAGES_SCREENS_PATH = "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens";
+
 	const RANGE_DAYS = {
 		last7days: 7,
 		last28days: 28,
@@ -106,21 +110,21 @@
 			secondaryDimension: "pagePath",
 			metric: "screenPageViews",
 			metricLabel: "Views",
-			path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-pages-screens%2Clifecycle%2Cengagement&r=life-cycle-engagement-pages-screens"
+			path: PAGES_SCREENS_PATH
 		},
 		sources: {
 			label: "Sources",
 			dimension: "sessionSourceMedium",
 			metric: "sessions",
 			metricLabel: "Sessions",
-			path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-acquisition-traffic-acquisition%2Clifecycle%2Cacquisition&r=life-cycle-acquisition-traffic-acquisition"
+			path: TRAFFIC_ACQUISITION_PATH
 		},
 		campaigns: {
 			label: "Campaigns",
 			dimension: "sessionCampaignName",
 			metric: "sessions",
 			metricLabel: "Sessions",
-			path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-acquisition-traffic-acquisition%2Clifecycle%2Cacquisition&r=life-cycle-acquisition-traffic-acquisition"
+			path: TRAFFIC_ACQUISITION_PATH
 		},
 		events: {
 			label: "Events",
@@ -169,8 +173,6 @@
 		"video_progress", "view_search_results", "form_start", "form_submit"
 	]);
 
-	const EVENTS_REPORT_PATH = "/reports/explorer?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-events%2Clifecycle%2Cengagement&r=life-cycle-engagement-events";
-
 	function buildTopEventsRequest(dateRange) {
 		return {
 			dateRanges: [getApiDateRange(dateRange)],
@@ -205,8 +207,6 @@
 
 		return { rows: eventRows, hasEnhancedEvent };
 	}
-
-	const TRAFFIC_ACQUISITION_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-acquisition-traffic-acquisition%2Clifecycle%2Cacquisition&r=life-cycle-acquisition-traffic-acquisition";
 
 	function buildTrafficSourceRequest(dateRange) {
 		return {
@@ -427,7 +427,10 @@
 		buildLandingPagesRequest,
 		buildLandingPageRows,
 		buildHealthCheckRequest,
-		buildHealthFindings
+		buildHealthFindings,
+		EVENTS_REPORT_PATH,
+		TRAFFIC_ACQUISITION_PATH,
+		PAGES_SCREENS_PATH
 	};
 
 	if (typeof module !== "undefined" && module.exports) module.exports = api;

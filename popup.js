@@ -1,21 +1,30 @@
 const GA4_API = "https://analyticsdata.googleapis.com/v1beta/properties/";
 
+const FALLBACK_REPORT_PATHS = {
+	EVENTS_REPORT_PATH: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=events,business-objectives,examine-user-behavior&r=events",
+	TRAFFIC_ACQUISITION_PATH: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=traffic-acquisition,business-objectives,acquire-new-users&r=traffic-acquisition",
+	PAGES_SCREENS_PATH: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=all-pages-and-screens,business-objectives,examine-user-behavior&r=all-pages-and-screens"
+};
+const REPORT_PATHS = typeof GA4AnalyticsUtils !== "undefined"
+	? { ...FALLBACK_REPORT_PATHS, ...GA4AnalyticsUtils }
+	: FALLBACK_REPORT_PATHS;
+
 const REPORTS = [
 	{
 		section: "Quick Access",
 		items: [
 			{ icon: "🟢", title: "Realtime", desc: "Who's on your site right now", path: "/reports/realtime/overview?params=_u..nav%3Dmaui" },
-			{ icon: "🏠", title: "Home", desc: "Your overview dashboard", path: "/reports/intelligenthome?params=_u..nav%3Dmaui&collectionId=life-cycle" },
-			{ icon: "📋", title: "Reports Snapshot", desc: "Quick summary of everything", path: "/reports/reportinghub?params=_u..nav%3Dmaui&collectionId=life-cycle" }
+			{ icon: "🏠", title: "Home", desc: "Your overview dashboard", path: "/reports/intelligenthome?params=_u..nav%3Dmaui&collectionId=business-objectives" },
+			{ icon: "📋", title: "Reports Snapshot", desc: "Quick summary of everything", path: "/reports/reportinghub?params=_u..nav%3Dmaui&collectionId=business-objectives" }
 		]
 	},
 	{
 		section: "Audience",
 		items: [
-			{ icon: "👥", title: "WHO visited", desc: "Countries, cities, languages", path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-audience-overview%2Clifecycle%2Causers&r=life-cycle-audience-overview" },
-			{ icon: "🗺️", title: "HOW they found you", desc: "Google, direct, social, referral", path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-acquisition-traffic-acquisition%2Clifecycle%2Cacquisition&r=life-cycle-acquisition-traffic-acquisition" },
-			{ icon: "📄", title: "WHAT they looked at", desc: "Pages and screens visited", path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-pages-screens%2Clifecycle%2Cengagement&r=life-cycle-engagement-pages-screens" },
-			{ icon: "⏱️", title: "Engagement", desc: "Session duration, bounce rate", path: "/reports/dashboard?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-overview%2Clifecycle%2Cengagement&r=life-cycle-engagement-overview" }
+			{ icon: "👥", title: "WHO visited", desc: "Countries, cities, languages", path: "/reports/explorer?params=_u..nav%3Dmaui&collectionId=business-objectives&ruid=demographic-details,business-objectives,examine-user-behavior&r=demographic-details" },
+			{ icon: "🗺️", title: "HOW they found you", desc: "Google, direct, social, referral", path: REPORT_PATHS.TRAFFIC_ACQUISITION_PATH },
+			{ icon: "📄", title: "WHAT they looked at", desc: "Pages and screens visited", path: REPORT_PATHS.PAGES_SCREENS_PATH },
+			{ icon: "⏱️", title: "Engagement", desc: "Session duration, bounce rate", path: REPORT_PATHS.PAGES_SCREENS_PATH }
 		]
 	}
 ];
@@ -27,7 +36,7 @@ const DATE_RANGES = [
 ];
 
 const TOP_INSIGHT_TYPES = ["pages", "sources", "campaigns", "events"];
-const LANDING_PAGES_PATH = "/reports/explorer?params=_u..nav%3Dmaui&collectionId=life-cycle&ruid=life-cycle-engagement-landing-pages-v2%2Clifecycle%2Cengagement&r=life-cycle-engagement-landing-pages-v2";
+const LANDING_PAGES_PATH = REPORT_PATHS.PAGES_SCREENS_PATH;
 
 let metricsRequestSequence = 0;
 let healthRequestSequence = 0;
