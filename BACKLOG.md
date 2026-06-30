@@ -57,7 +57,7 @@ Items are checked when fully implemented.
 - [x] **Device category snapshot**
   Fetch sessions and engagement rate split by `deviceCategory` (Desktop / Mobile / Tablet). Display as a small card alongside the existing metrics bar. Link to Tech > Tech Overview. Keep the API call lightweight — single-dimension, single-date-range request.
 
-- [ ] **New vs. returning user card**
+- [x] **New vs. returning user card**
   Fetch `newUsers` and `activeUsers` for the selected date range. Derive returning users. Display as a ratio card with a link to the Retention report.
 
 - [ ] **Site search term viewer**

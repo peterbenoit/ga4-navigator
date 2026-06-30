@@ -394,6 +394,75 @@ a {
 	cursor: help;
 }
 
+/* ─── NEW VS. RETURNING CARD ────────────────── */
+
+.nvr-card {
+	padding: 12px 16px 14px;
+}
+
+.nvr-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 8px;
+}
+
+.nvr-row:last-child {
+	margin-bottom: 0;
+}
+
+.nvr-label {
+	width: 70px;
+	flex-shrink: 0;
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+.nvr-bar-wrap {
+	flex: 1;
+	height: 8px;
+	background: var(--bg);
+	border-radius: 4px;
+	overflow: hidden;
+	border: 1px solid var(--border);
+}
+
+.nvr-bar {
+	height: 100%;
+	border-radius: 4px;
+	transition: width 0.3s ease;
+}
+
+.nvr-bar-new {
+	background: var(--blue);
+}
+
+.nvr-bar-returning {
+	background: var(--green, #2e7d32);
+}
+
+.nvr-count {
+	width: 54px;
+	text-align: right;
+	font-size: 11px;
+	font-weight: 600;
+}
+
+.nvr-share {
+	width: 30px;
+	text-align: right;
+	font-size: 10px;
+	color: var(--text-muted);
+}
+
+.nvr-link {
+	display: block;
+	margin-top: 10px;
+	font-size: 10px;
+	color: var(--text-muted);
+	text-align: right;
+}
+
 /* ─── CONTROLS ROW ──────────────────────────── */
 
 .controls-row {

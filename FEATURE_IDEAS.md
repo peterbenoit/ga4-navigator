@@ -113,7 +113,7 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
 - [ ] **Device and browser snapshot**
   Shows sessions split by device category (Desktop / Mobile / Tablet) with engagement rate per category. Second tab shows top browsers. Flags high IE/legacy browser share. Links to GA4 Tech reports. Useful before responsive design or compatibility decisions.
 
-- [ ] **New vs. returning user card**
+- [x] **New vs. returning user card**
   Pulls new user and returning user counts for the selected date range. Shows as a simple ratio card with a link to the GA4 Retention report.
 
 - [ ] **"Answerable by GA4?" diagnostic**

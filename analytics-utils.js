@@ -6,6 +6,7 @@
 	const PAGES_SCREENS_PATH = "/reports/explorer?params=_u..nav%3Dmaui&r=all-pages-and-screens";
 	const ENGAGEMENT_OVERVIEW_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=engagement-overview";
 	const TECH_OVERVIEW_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=user-technology-overview";
+	const RETENTION_PATH = "/reports/dashboard?params=_u..nav%3Dmaui&r=lifecycle-user-retention-summary";
 
 	const RANGE_DAYS = {
 		last7days: 7,
@@ -282,6 +283,41 @@
 		});
 	}
 
+	function buildNewVsReturningRequest(dateRange) {
+		return {
+			dateRanges: [getApiDateRange(dateRange)],
+			dimensions: [{ name: "newVsReturning" }],
+			metrics: [{ name: "activeUsers" }],
+			orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }]
+		};
+	}
+
+	function buildNewVsReturningData(report) {
+		const rows = report?.rows || [];
+		let newUsers = 0;
+		let returningUsers = 0;
+
+		rows.forEach(row => {
+			const dim = String(row.dimensionValues?.[0]?.value || "").toLowerCase();
+			const count = Number(row.metricValues?.[0]?.value) || 0;
+			if (dim === "new") newUsers = count;
+			else if (dim === "returning") returningUsers = count;
+		});
+
+		const total = newUsers + returningUsers;
+		return {
+			newUsers,
+			returningUsers,
+			total,
+			newShare: total > 0 ? Math.round((newUsers / total) * 100) : 0,
+			returningShare: total > 0 ? Math.round((returningUsers / total) * 100) : 0,
+			newUsersFormatted: formatSafeCount(newUsers),
+			returningUsersFormatted: formatSafeCount(returningUsers),
+			totalFormatted: formatSafeCount(total),
+			path: RETENTION_PATH
+		};
+	}
+
 	function buildLandingPagesRequest(dateRange) {
 		return {
 			dateRanges: [getApiDateRange(dateRange)],
@@ -462,6 +498,8 @@
 		buildTrafficSourceRows,
 		buildDeviceCategoryRequest,
 		buildDeviceCategoryRows,
+		buildNewVsReturningRequest,
+		buildNewVsReturningData,
 		buildLandingPagesRequest,
 		buildLandingPageRows,
 		buildHealthCheckRequest,
@@ -470,7 +508,8 @@
 		TRAFFIC_ACQUISITION_PATH,
 		PAGES_SCREENS_PATH,
 		ENGAGEMENT_OVERVIEW_PATH,
-		TECH_OVERVIEW_PATH
+		TECH_OVERVIEW_PATH,
+		RETENTION_PATH
 	};
 
 	if (typeof module !== "undefined" && module.exports) module.exports = api;

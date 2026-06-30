@@ -45,6 +45,7 @@ let landingRequestSequence = 0;
 let trafficRequestSequence = 0;
 let eventsRequestSequence = 0;
 let deviceRequestSequence = 0;
+let newVsReturningRequestSequence = 0;
 let selectedTopInsightType = "pages";
 let propertySelectTimer = null;
 let compareMode = false;
@@ -53,6 +54,7 @@ let landingPagesStale = true;
 let trafficSourceStale = true;
 let topEventsStale = true;
 let deviceCategoryStale = true;
+let newVsReturningStale = true;
 
 // --- Storage ---
 
@@ -397,10 +399,12 @@ function renderDatePills() {
 			landingPagesStale = true;
 			trafficSourceStale = true;
 			topEventsStale = true;
+			newVsReturningStale = true;
 			if (activeMainTab === "analysis") {
 				loadLandingPages(props[getSelectedIndex()]?.id || "");
 				loadTrafficSources(props[getSelectedIndex()]?.id || "");
 				loadTopEvents(props[getSelectedIndex()]?.id || "");
+				loadNewVsReturning(props[getSelectedIndex()]?.id || "");
 			}
 			renderDatePills();
 		};
@@ -1125,6 +1129,151 @@ async function loadDeviceCategories(propertyId, interactive = false) {
 	}
 }
 
+// --- New vs. Returning ---
+
+function renderNewVsReturning(data, propertyId) {
+	const body = document.getElementById("new-vs-returning-body");
+	body.innerHTML = "";
+
+	const ga4Base = buildGA4Url(propertyId);
+	const retentionHref = ga4Base + GA4AnalyticsUtils.RETENTION_PATH;
+
+	const rows = [
+		{ label: "New", count: data.newUsersFormatted, share: data.newShare, barClass: "nvr-bar-new" },
+		{ label: "Returning", count: data.returningUsersFormatted, share: data.returningShare, barClass: "nvr-bar-returning" }
+	];
+
+	rows.forEach(({ label, count, share, barClass }) => {
+		const row = document.createElement("div");
+		row.className = "nvr-row";
+
+		const labelEl = document.createElement("span");
+		labelEl.className = "nvr-label";
+		labelEl.textContent = label;
+
+		const barWrap = document.createElement("div");
+		barWrap.className = "nvr-bar-wrap";
+		const bar = document.createElement("div");
+		bar.className = `nvr-bar ${barClass}`;
+		bar.style.width = `${share}%`;
+		barWrap.appendChild(bar);
+
+		const countEl = document.createElement("span");
+		countEl.className = "nvr-count";
+		countEl.textContent = count;
+
+		const shareEl = document.createElement("span");
+		shareEl.className = "nvr-share";
+		shareEl.textContent = `${share}%`;
+
+		row.appendChild(labelEl);
+		row.appendChild(barWrap);
+		row.appendChild(countEl);
+		row.appendChild(shareEl);
+		body.appendChild(row);
+	});
+
+	const link = document.createElement("a");
+	link.className = "nvr-link";
+	link.href = retentionHref;
+	link.target = "_blank";
+	link.rel = "noopener noreferrer";
+	link.textContent = `${data.totalFormatted} total users · Open Retention report →`;
+	body.appendChild(link);
+
+	body.hidden = false;
+}
+
+async function fetchNewVsReturningReport(numericId, token, dateRange) {
+	const response = await fetch(`${GA4_API}${numericId}:runReport`, {
+		method: "POST",
+		headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+		body: JSON.stringify(GA4AnalyticsUtils.buildNewVsReturningRequest(dateRange))
+	});
+	const body = await response.json();
+	if (!response.ok) {
+		const error = new Error(body.error?.message || "New vs. returning API error");
+		error.status = response.status;
+		throw error;
+	}
+	return body;
+}
+
+function showNewVsReturningConnect(propertyId, requestId) {
+	const status = document.getElementById("new-vs-returning-status");
+	status.innerHTML = "";
+	const button = document.createElement("button");
+	button.className = "metric-connect";
+	button.type = "button";
+	button.textContent = "Connect Google →";
+	button.addEventListener("click", () => {
+		if (requestId === newVsReturningRequestSequence) loadNewVsReturning(propertyId, true);
+	});
+	status.appendChild(button);
+}
+
+async function loadNewVsReturning(propertyId, interactive = false) {
+	const requestId = ++newVsReturningRequestSequence;
+	const status = document.getElementById("new-vs-returning-status");
+	const body = document.getElementById("new-vs-returning-body");
+	body.hidden = true;
+	body.innerHTML = "";
+
+	const numericId = getNumericId(propertyId || "");
+	if (!numericId) {
+		status.textContent = "Add or select a property to view user retention data.";
+		return;
+	}
+	if (typeof navigator !== "undefined" && !navigator.onLine) {
+		status.textContent = "No connection. Check your network.";
+		return;
+	}
+	if (typeof chrome === "undefined" || !chrome.identity) {
+		status.textContent = "New vs. returning requires the installed extension.";
+		return;
+	}
+
+	status.textContent = "Loading user data...";
+
+	let token;
+	try {
+		token = await getIdentityToken(interactive);
+	} catch {
+		if (requestId !== newVsReturningRequestSequence) return;
+		if (!interactive) showNewVsReturningConnect(propertyId, requestId);
+		else status.textContent = "Google authentication failed.";
+		return;
+	}
+
+	try {
+		let report;
+		try {
+			report = await fetchNewVsReturningReport(numericId, token, getDateRange());
+		} catch (error) {
+			if (!isAuthApiError(error)) throw error;
+			await removeIdentityToken(token);
+			token = await getIdentityToken(true);
+			report = await fetchNewVsReturningReport(numericId, token, getDateRange());
+		}
+
+		if (requestId !== newVsReturningRequestSequence) return;
+		const data = GA4AnalyticsUtils.buildNewVsReturningData(report);
+		if (data.total === 0) {
+			status.textContent = "No user data found for this date range.";
+		} else {
+			renderNewVsReturning(data, propertyId);
+			status.textContent = "";
+		}
+		newVsReturningStale = false;
+	} catch (error) {
+		if (requestId !== newVsReturningRequestSequence) return;
+		if (error?.status === 429) status.textContent = "Rate limit reached. Try again in a moment.";
+		else if (error?.status === 403) status.textContent = "Analytics permission denied.";
+		else if (error?.status === 401) status.textContent = "Google authentication expired.";
+		else status.textContent = "New vs. returning data unavailable.";
+	}
+}
+
 // --- Top events ---
 
 function renderTopEventRows(rows, hasEnhancedEvent, propertyId) {
@@ -1590,6 +1739,7 @@ function showMain() {
 			trafficSourceStale = true;
 			topEventsStale = true;
 			deviceCategoryStale = true;
+			newVsReturningStale = true;
 			clearTimeout(propertySelectTimer);
 			propertySelectTimer = setTimeout(() => {
 				fetchMetrics(properties[i]?.id || "");
@@ -1598,6 +1748,7 @@ function showMain() {
 					loadTrafficSources(properties[i]?.id || "");
 					loadTopEvents(properties[i]?.id || "");
 					loadDeviceCategories(properties[i]?.id || "");
+					loadNewVsReturning(properties[i]?.id || "");
 				}
 			}, 150);
 		};
@@ -2033,6 +2184,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		if (trafficSourceStale) loadTrafficSources(property?.id || "");
 		if (topEventsStale) loadTopEvents(property?.id || "");
 		if (deviceCategoryStale) loadDeviceCategories(property?.id || "");
+		if (newVsReturningStale) loadNewVsReturning(property?.id || "");
 	});
 
 	window.addEventListener("offline", () => {
@@ -2041,6 +2193,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		if (activeMainTab === "analysis") {
 			document.getElementById("landing-pages-status").textContent = "No connection. Check your network.";
 			document.getElementById("device-category-status").textContent = "No connection. Check your network.";
+			document.getElementById("new-vs-returning-status").textContent = "No connection. Check your network.";
 		}
 	});
 
@@ -2052,6 +2205,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			loadTrafficSources(property?.id || "");
 			loadTopEvents(property?.id || "");
 			loadDeviceCategories(property?.id || "");
+			loadNewVsReturning(property?.id || "");
 		}
 	});
 });

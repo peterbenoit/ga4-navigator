@@ -17,7 +17,10 @@ const {
   buildLandingPageRows,
   buildHealthCheckRequest,
   buildHealthFindings,
-  TECH_OVERVIEW_PATH
+  buildNewVsReturningRequest,
+  buildNewVsReturningData,
+  TECH_OVERVIEW_PATH,
+  RETENTION_PATH
 } = require("./analytics-utils");
 
 test("getApiDateRange maps saved date range values to GA4 API ranges", () => {
@@ -162,7 +165,7 @@ test("getTopInsightConfig returns GA4 request settings for top sources", () => {
     dimension: "sessionSourceMedium",
     metric: "sessions",
     metricLabel: "Sessions",
-    path: "/reports/dashboard?params=_u..nav%3Dmaui&r=traffic-acquisition"
+    path: "/reports/explorer?params=_u..nav%3Dmaui&r=lifecycle-traffic-acquisition-v2"
   });
 });
 
@@ -374,4 +377,60 @@ test("buildDeviceCategoryRows falls back to (not set) for missing device name", 
 
 test("TECH_OVERVIEW_PATH contains user-technology-overview report identifier", () => {
   assert.ok(TECH_OVERVIEW_PATH.includes("user-technology-overview"));
+});
+
+test("buildNewVsReturningRequest returns correct dimensions and metrics", () => {
+  const request = buildNewVsReturningRequest("last7days");
+  assert.deepEqual(request.dateRanges, [{ startDate: "7daysAgo", endDate: "today" }]);
+  assert.deepEqual(request.dimensions, [{ name: "newVsReturning" }]);
+  assert.deepEqual(request.metrics, [{ name: "activeUsers" }]);
+  assert.ok(request.orderBys[0].desc);
+});
+
+test("buildNewVsReturningData splits new and returning correctly", () => {
+  const report = {
+    rows: [
+      { dimensionValues: [{ value: "new" }], metricValues: [{ value: "800" }] },
+      { dimensionValues: [{ value: "returning" }], metricValues: [{ value: "200" }] }
+    ]
+  };
+  const data = buildNewVsReturningData(report);
+  assert.equal(data.newUsers, 800);
+  assert.equal(data.returningUsers, 200);
+  assert.equal(data.total, 1000);
+  assert.equal(data.newShare, 80);
+  assert.equal(data.returningShare, 20);
+  assert.equal(data.newUsersFormatted, "800");
+  assert.equal(data.returningUsersFormatted, "200");
+  assert.equal(data.totalFormatted, "1,000");
+  assert.ok(data.path.includes("retention"));
+});
+
+test("buildNewVsReturningData handles empty report", () => {
+  const data = buildNewVsReturningData({});
+  assert.equal(data.newUsers, 0);
+  assert.equal(data.returningUsers, 0);
+  assert.equal(data.total, 0);
+  assert.equal(data.newShare, 0);
+  assert.equal(data.returningShare, 0);
+});
+
+test("buildNewVsReturningData handles null report", () => {
+  const data = buildNewVsReturningData(null);
+  assert.equal(data.total, 0);
+});
+
+test("buildNewVsReturningData handles only new users", () => {
+  const report = {
+    rows: [{ dimensionValues: [{ value: "new" }], metricValues: [{ value: "500" }] }]
+  };
+  const data = buildNewVsReturningData(report);
+  assert.equal(data.newUsers, 500);
+  assert.equal(data.returningUsers, 0);
+  assert.equal(data.newShare, 100);
+  assert.equal(data.returningShare, 0);
+});
+
+test("RETENTION_PATH contains retention report identifier", () => {
+  assert.ok(RETENTION_PATH.includes("retention"));
 });
