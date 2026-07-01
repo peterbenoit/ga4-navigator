@@ -133,6 +133,7 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
 
 - [ ] **Campaign performance card**
   Shows sessions, engaged sessions, engagement rate, and conversions broken down by `sessionCampaign` for the selected date range. Surfaces cost and cost-per-session when a linked Google Ads account is available. Flags campaigns with sessions but no UTM medium/source as a likely tagging gap. Row click opens Traffic Acquisition filtered to that campaign.
+  Real-world validation (Slack, 2026-07-01): a customer asked "is there a way to compare the number of appts scheduled from a campaign in GA4?" — i.e. a specific key event (appointment scheduled) broken down by `sessionCampaign` rather than total conversions. Card should let the user pick which key event to break down by campaign, not just show the aggregate conversions count, and should flag `(not set)` campaign values so users know UTM tagging is the likely cause of missing data.
 
 - [ ] **Audience and demographics snapshot**
   Compact breakdown of country/region, age, gender, and language for the selected property and date range, pulled from `Reports > User > Demographics`. Notes when Google Signals is required and shows an "unknown" share where data is unavailable. Includes a VA-region view comparing engagement and conversions by region. Links to the matching GA4 Demographics report.
