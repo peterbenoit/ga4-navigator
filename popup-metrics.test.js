@@ -382,7 +382,7 @@ test("fetchMetrics loads and renders top page insights", async () => {
   assert.deepEqual(requests[2].metrics, [{ name: "screenPageViews" }]);
 
   const row = context.document.getElementById("insight-list").children[0];
-  assert.equal(row.href, "https://analytics.google.com/analytics/web/#/a356198589p490540007/reports/explorer?params=_u..nav%3Dmaui%26_u.date00%3D20260530%26_u.date01%3D20260626&r=all-pages-and-screens");
+  assert.equal(row.href, "https://analytics.google.com/analytics/web/#/a356198589p490540007/reports/explorer?params=_u..nav%3Dmaui%26_u.date00%3D20260530%26_u.date01%3D20260626&collectionId=life-cycle&r=all-pages-and-screens");
   assert.deepEqual(row.children.map(child => child.textContent), ["Home", "/", "42", "Views"]);
 });
 
@@ -460,8 +460,11 @@ test("loadLandingPages requests and renders landing page performance", async () 
   assert.match(requests[0].url, /properties\/490540007:runReport$/);
   assert.deepEqual(JSON.parse(requests[0].options.body), GA4AnalyticsUtils.buildLandingPagesRequest("last28days"));
   const row = context.document.getElementById("landing-pages-body").children[0];
-  assert.equal(row.children[0].children[0].textContent, "/services");
-  assert.match(row.children[0].children[0].href, /analytics\.google\.com/);
+  assert.equal(row.children[0].textContent, "/services");
   assert.deepEqual(row.children.slice(1).map(cell => cell.textContent), ["120", "62.5%", "37.5%"]);
   assert.equal(context.document.getElementById("landing-pages-status").textContent, "Showing 1 landing page");
+
+  const footerLink = context.document.getElementById("landing-pages-footer").children[0];
+  assert.equal(footerLink.textContent, "Open Landing Pages report →");
+  assert.match(footerLink.href, /analytics\.google\.com/);
 });

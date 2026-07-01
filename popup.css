@@ -258,6 +258,12 @@ a {
 	font-weight: 600;
 }
 
+.tab-icon-only {
+	flex: 0 0 auto;
+	font-size: 15px;
+	padding: 0 12px;
+}
+
 /* ─── TAB PANELS ────────────────────────────── */
 
 .tab-panel {
@@ -474,6 +480,91 @@ a {
 	font-size: 10px;
 	color: var(--text-muted);
 	text-align: right;
+}
+
+/* ─── COMMAND SEARCH ────────────────────────── */
+
+.search-panel {
+	padding: 14px;
+}
+
+.search-input {
+	width: 100%;
+	background: var(--surface);
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius);
+	color: var(--text);
+	font-size: 13px;
+	padding: 9px 11px;
+	transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.search-input:focus {
+	border-color: var(--blue);
+	box-shadow: 0 0 0 3px rgba(28, 90, 166, 0.12);
+	outline: none;
+}
+
+.search-input::placeholder {
+	color: var(--text-dim);
+}
+
+.search-status {
+	min-height: 18px;
+	margin-top: 6px;
+	color: var(--text-muted);
+	font-size: 11px;
+}
+
+.command-list {
+	list-style: none;
+	margin-top: 4px;
+	padding: 0;
+}
+
+.command-item {
+	display: block;
+	width: 100%;
+	text-align: left;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	cursor: pointer;
+	margin-bottom: 6px;
+	padding: 9px 11px;
+}
+
+.command-item:hover,
+.command-item.active {
+	border-color: var(--blue);
+	background: var(--blue-light);
+}
+
+.command-item-row {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+}
+
+.command-item-type {
+	flex-shrink: 0;
+	color: var(--text-dim);
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
+.command-item-label {
+	color: var(--text);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.command-item-meta {
+	margin-top: 2px;
+	color: var(--text-muted);
+	font-size: 11px;
 }
 
 /* ─── CONTROLS ROW ──────────────────────────── */
@@ -1473,6 +1564,24 @@ a {
 .ai-digest-output.error {
 	color: var(--text-muted);
 	font-size: 12px;
+}
+
+.ask-ga4-form {
+	display: flex;
+	gap: 8px;
+	padding: 12px 14px;
+	border-bottom: 1px solid var(--border);
+}
+
+.ask-ga4-form .search-input {
+	flex: 1;
+}
+
+.ask-ga4-link {
+	display: block;
+	padding: 0 14px 12px;
+	font-size: 11px;
+	color: var(--blue);
 }
 
 @media (max-width: 440px) {

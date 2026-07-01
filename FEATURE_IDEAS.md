@@ -29,7 +29,7 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
 - [x] **Recent reports**
   Tracks GA4 links opened from the extension. Recent items include property, report label, and timestamp. History is clearable.
 
-- [ ] **Smart search / command palette**
+- [x] **Smart search / command palette**
   A single input that filters properties, reports, and shortcuts by keyword. Keyboard-navigable with arrow keys and Enter.
 
 - [ ] **Alerts and monitors**
@@ -58,6 +58,9 @@ The current extension is useful as a shortcut panel, but it can become a lightwe
 
 - [x] **Plain-English metric digest (on-device AI)**
   Uses Chrome's built-in Prompt API (Gemini Nano via `LanguageModel`) to summarize metric changes in 2-3 sentences. No external API, no data leaves the browser. Section hidden when API unavailable.
+
+- [x] **Ask GA4 (natural-language Q&A grounded in live data)**
+  A free-text question box (Search tab) that uses the on-device Prompt API to classify the question into one of seven known metric categories (overview, traffic, devices, events, landing pages, retention, site search), fetches the real GA4 data for that category and the selected property/date range, then generates a 2-3 sentence answer grounded in the actual numbers — not a static deep-link. Falls back to a guidance message when the question doesn't match a fetchable category, and links to the matching GA4 report. No external API, on-device only, hidden when unavailable.
 
 - [ ] **Anomaly spotter**
   Compares today vs the same day last week, and last 7 days vs prior 7. Flags anything that moved more than 20% in either direction. Shown as a "what changed" card.

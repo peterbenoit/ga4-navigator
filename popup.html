@@ -37,6 +37,8 @@
 				data-tab="reports">Reports</button>
 			<button class="tab" id="tab-favorites-button" role="tab" aria-selected="false" aria-controls="tab-favorites"
 				data-tab="favorites">Favorites</button>
+			<button class="tab tab-icon-only" id="tab-search-button" role="tab" aria-selected="false"
+				aria-controls="tab-search" data-tab="search" aria-label="Search" title="Search">🔍</button>
 		</nav>
 
 		<!-- TAB: DASHBOARD -->
@@ -51,7 +53,7 @@
 
 			<section id="ai-digest" class="ai-digest" aria-labelledby="ai-digest-heading" hidden>
 				<div class="ai-digest-header">
-					<h2 id="ai-digest-heading">AI Digest</h2>
+					<h2 id="ai-digest-heading">Summary</h2>
 					<button class="ai-digest-btn" id="btn-ai-digest" type="button">Summarize</button>
 				</div>
 				<div id="ai-digest-output" class="ai-digest-output" role="status" aria-live="polite"></div>
@@ -229,6 +231,32 @@
 		<div id="tab-favorites" class="tab-panel" role="tabpanel" aria-labelledby="tab-favorites-button">
 			<div id="shortcut-list"></div>
 			<div id="recent-list"></div>
+		</div>
+
+		<!-- TAB: SEARCH -->
+		<div id="tab-search" class="tab-panel" role="tabpanel" aria-labelledby="tab-search-button">
+			<section id="ask-ga4" class="ai-digest" aria-labelledby="ask-ga4-heading" hidden>
+				<div class="ai-digest-header">
+					<h2 id="ask-ga4-heading">Ask GA4</h2>
+				</div>
+				<form id="ask-ga4-form" class="ask-ga4-form">
+					<label for="ask-ga4-input" class="visually-hidden">Ask a question about this property's data</label>
+					<input id="ask-ga4-input" class="search-input" type="text" autocomplete="off"
+						placeholder="e.g. Where is my traffic coming from?">
+					<button id="btn-ask-ga4" class="ai-digest-btn" type="submit">Ask</button>
+				</form>
+				<div id="ask-ga4-output" class="ai-digest-output" role="status" aria-live="polite"></div>
+				<a id="ask-ga4-link" class="ask-ga4-link" target="_blank" rel="noopener noreferrer" hidden></a>
+			</section>
+
+			<div class="search-panel">
+				<label for="command-search-input" class="visually-hidden">Search properties, reports, and shortcuts</label>
+				<input id="command-search-input" class="search-input" type="text" autocomplete="off"
+					placeholder="Search properties, reports, shortcuts…" role="combobox" aria-expanded="false"
+					aria-controls="command-search-results" aria-autocomplete="list" aria-activedescendant="">
+				<div id="command-search-status" class="search-status" role="status" aria-live="polite"></div>
+				<ul id="command-search-results" class="command-list" role="listbox" aria-label="Search results"></ul>
+			</div>
 		</div>
 	</div>
 

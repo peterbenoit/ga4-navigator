@@ -4,7 +4,9 @@ const FALLBACK_REPORT_PATHS = {
 	EVENTS_REPORT_PATH: "/reports/explorer?params=_u..nav%3Dmaui&r=events",
 	TRAFFIC_ACQUISITION_PATH: "/reports/dashboard?params=_u..nav%3Dmaui&r=traffic-acquisition",
 	PAGES_SCREENS_PATH: "/reports/explorer?params=_u..nav%3Dmaui&r=all-pages-and-screens",
-	ENGAGEMENT_OVERVIEW_PATH: "/reports/dashboard?params=_u..nav%3Dmaui&r=engagement-overview"
+	ENGAGEMENT_OVERVIEW_PATH: "/reports/dashboard?params=_u..nav%3Dmaui&r=engagement-overview",
+	TECH_OVERVIEW_PATH: "/reports/dashboard?params=_u..nav%3Dmaui&r=user-technology-overview",
+	RETENTION_PATH: "/reports/dashboard?params=_u..nav%3Dmaui&r=lifecycle-user-retention-summary"
 };
 const REPORT_PATHS = typeof GA4AnalyticsUtils !== "undefined"
 	? { ...FALLBACK_REPORT_PATHS, ...GA4AnalyticsUtils }
@@ -337,6 +339,191 @@ function renderRecentReports() {
 		a.querySelector(".btn-desc").textContent = getPropertyLabel(recent.propertyId);
 		a.querySelector(".shortcut-meta").textContent = formatOpenedAt(recent.openedAt);
 		container.appendChild(a);
+	});
+}
+
+// --- Command search (Smart search / command palette) ---
+
+let commandActiveIndex = -1;
+let commandResults = [];
+
+function buildCommandIndex() {
+	const properties = getProperties();
+	const selectedIdx = getSelectedIndex();
+	const activePropertyId = properties[selectedIdx]?.id || "";
+	const commands = [];
+
+	properties.forEach((property, index) => {
+		commands.push({
+			type: "property",
+			typeLabel: "Property",
+			label: property.label,
+			meta: index === selectedIdx ? "Currently selected" : "Switch to this property",
+			href: null,
+			onActivate: () => switchToProperty(index)
+		});
+	});
+
+	if (activePropertyId) {
+		REPORTS.forEach(section => {
+			section.items.forEach(item => {
+				commands.push({
+					type: "report",
+					typeLabel: "Report",
+					label: item.title,
+					meta: item.desc,
+					href: buildHref(activePropertyId, item.path, getDateRange()),
+					onActivate: () => recordRecentReport({
+						label: `Report: ${item.title}`,
+						propertyId: activePropertyId,
+						path: item.path
+					})
+				});
+			});
+		});
+	}
+
+	getShortcuts().forEach(shortcut => {
+		commands.push({
+			type: "shortcut",
+			typeLabel: "Shortcut",
+			label: shortcut.label,
+			meta: `${getPropertyLabel(shortcut.propertyId)} · ${shortcut.path.replace(/^\//, "")}`,
+			href: buildHref(shortcut.propertyId, shortcut.path, getDateRange()),
+			onActivate: () => recordRecentReport({
+				label: shortcut.label,
+				propertyId: shortcut.propertyId,
+				path: shortcut.path
+			})
+		});
+	});
+
+	return commands;
+}
+
+function switchToProperty(index) {
+	const select = document.getElementById("propertySelect");
+	if (!select) return;
+	select.value = String(index);
+	select.dispatchEvent(new Event("change"));
+	document.getElementById("tab-dashboard-button")?.click();
+}
+
+function setCommandActiveIndex(index) {
+	const items = document.querySelectorAll("#command-search-results .command-item");
+	commandActiveIndex = index;
+
+	items.forEach((el, i) => {
+		const isActive = i === commandActiveIndex;
+		el.classList.toggle("active", isActive);
+		el.setAttribute("aria-selected", isActive ? "true" : "false");
+	});
+
+	const input = document.getElementById("command-search-input");
+	const activeEl = items[commandActiveIndex];
+	if (input) input.setAttribute("aria-activedescendant", activeEl ? activeEl.id : "");
+	if (activeEl) activeEl.scrollIntoView({ block: "nearest" });
+}
+
+// Triggered only for keyboard activation (Enter), since a real mouse click on
+// the <a> already navigates natively — calling this there too would open two tabs.
+function activateCommandViaKeyboard(command) {
+	if (!command) return;
+	command.onActivate();
+	if (command.href) window.open(command.href, "_blank", "noopener,noreferrer");
+}
+
+function renderCommandResults(query) {
+	const list = document.getElementById("command-search-results");
+	const status = document.getElementById("command-search-status");
+	const input = document.getElementById("command-search-input");
+	list.innerHTML = "";
+
+	const allCommands = buildCommandIndex();
+	if (allCommands.length === 0) {
+		status.textContent = "Add a property to start searching.";
+		input.setAttribute("aria-expanded", "false");
+		commandResults = [];
+		return;
+	}
+
+	commandResults = GA4ShortcutUtils.filterCommands(allCommands, query);
+	input.setAttribute("aria-expanded", commandResults.length > 0 ? "true" : "false");
+
+	if (commandResults.length === 0) {
+		status.textContent = "No matches found.";
+		commandActiveIndex = -1;
+		input.setAttribute("aria-activedescendant", "");
+		return;
+	}
+
+	status.textContent = `${commandResults.length} result${commandResults.length === 1 ? "" : "s"}`;
+
+	commandResults.forEach((command, index) => {
+		const li = document.createElement("li");
+		li.setAttribute("role", "presentation");
+
+		const el = document.createElement(command.href ? "a" : "button");
+		el.id = `command-result-${index}`;
+		el.className = "command-item";
+		el.setAttribute("role", "option");
+		el.setAttribute("aria-selected", "false");
+		el.tabIndex = -1;
+		if (command.href) {
+			el.href = command.href;
+			el.target = "_blank";
+			el.rel = "noopener noreferrer";
+		} else {
+			el.type = "button";
+		}
+		el.innerHTML = `
+      <div class="command-item-row">
+        <span class="command-item-type"></span>
+        <span class="command-item-label"></span>
+      </div>
+      <div class="command-item-meta"></div>`;
+		el.querySelector(".command-item-type").textContent = command.typeLabel;
+		el.querySelector(".command-item-label").textContent = command.label;
+		el.querySelector(".command-item-meta").textContent = command.meta;
+		el.addEventListener("mouseenter", () => setCommandActiveIndex(index));
+		// Real <a> clicks already navigate natively; only run the recent-report side effect here.
+		el.addEventListener("click", () => command.onActivate());
+
+		li.appendChild(el);
+		list.appendChild(li);
+	});
+
+	setCommandActiveIndex(commandResults.length > 0 ? 0 : -1);
+}
+
+function initCommandSearch() {
+	const input = document.getElementById("command-search-input");
+	if (!input) return;
+
+	input.addEventListener("input", () => renderCommandResults(input.value));
+
+	input.addEventListener("keydown", event => {
+		if (commandResults.length === 0 && event.key !== "Escape") return;
+
+		if (event.key === "ArrowDown") {
+			event.preventDefault();
+			setCommandActiveIndex((commandActiveIndex + 1) % commandResults.length);
+		} else if (event.key === "ArrowUp") {
+			event.preventDefault();
+			setCommandActiveIndex((commandActiveIndex - 1 + commandResults.length) % commandResults.length);
+		} else if (event.key === "Enter") {
+			event.preventDefault();
+			activateCommandViaKeyboard(commandResults[commandActiveIndex]);
+		} else if (event.key === "Escape") {
+			input.value = "";
+			renderCommandResults("");
+		}
+	});
+
+	document.addEventListener("ga4-tab-change", event => {
+		if (event.detail?.tab !== "search") return;
+		renderCommandResults(input.value);
+		input.focus();
 	});
 }
 
@@ -696,7 +883,10 @@ async function generateAiDigest() {
 	output.textContent = "Generating summary…";
 
 	try {
-		const langOptions = { expectedInputLanguages: ["en"], expectedOutputLanguages: ["en"] };
+		const langOptions = {
+			expectedInputs: [{ type: "text", languages: ["en"] }],
+			expectedOutputs: [{ type: "text", languages: ["en"] }]
+		};
 		const availability = await LanguageModel.availability(langOptions);
 		if (availability === "unavailable") {
 			output.className = "ai-digest-output error";
@@ -708,17 +898,19 @@ async function generateAiDigest() {
 			output.textContent = "Downloading AI model… this may take a moment. Click Cancel to stop.";
 		}
 
+		let modelReady = false;
 		const session = await LanguageModel.create({
 			signal: digestAbortController.signal,
-			expectedInputLanguages: ["en"],
-			expectedOutputLanguages: ["en"],
+			...langOptions,
 			monitor(m) {
 				m.addEventListener("downloadprogress", e => {
+					if (modelReady) return;
 					const pct = Math.round(e.loaded * 100);
 					output.textContent = `Downloading AI model: ${pct}%${pct < 100 ? " — Click Cancel to stop." : ""}`;
 				});
 			}
 		});
+		modelReady = true;
 
 		const prompt = buildDigestPrompt(lastDigestMetrics, propertyLabel, dateRange);
 		output.textContent = "";
@@ -751,6 +943,353 @@ async function initAiDigest() {
 
 	const btn = document.getElementById("btn-ai-digest");
 	if (btn) btn.addEventListener("click", generateAiDigest);
+}
+
+// --- Ask GA4 (natural-language Q&A grounded in live GA4 data) ---
+
+// Built lazily (not as a module-level const) so this file can still load in
+// environments/tests that don't provide the GA4AnalyticsUtils global.
+function getAskGa4Intents() {
+	return {
+		overview: {
+			label: "Account overview",
+			description: "general traffic, sessions, total users, page views, or event counts for the property",
+			path: null
+		},
+		traffic: {
+			label: "Traffic sources",
+			description: "where sessions come from: channel, referral, organic, direct, paid search, social, unassigned",
+			path: REPORT_PATHS.TRAFFIC_ACQUISITION_PATH
+		},
+		devices: {
+			label: "Device categories",
+			description: "sessions split by desktop, mobile, or tablet device type",
+			path: REPORT_PATHS.TECH_OVERVIEW_PATH
+		},
+		events: {
+			label: "Top events",
+			description: "most frequent events and their counts, including enhanced measurement events like scroll or file_download",
+			path: REPORT_PATHS.EVENTS_REPORT_PATH
+		},
+		landing: {
+			label: "Landing pages",
+			description: "entry pages with sessions, engagement rate, and bounce rate",
+			path: LANDING_PAGES_PATH
+		},
+		retention: {
+			label: "New vs. returning users",
+			description: "split of new users versus returning users",
+			path: REPORT_PATHS.RETENTION_PATH
+		},
+		search: {
+			label: "Site search terms",
+			description: "top on-site search queries users typed into the site search box",
+			path: REPORT_PATHS.EVENTS_REPORT_PATH
+		}
+	};
+}
+
+const ASK_GA4_DATE_LABELS = {
+	last7days: "the last 7 days",
+	last28days: "the last 28 days",
+	last90days: "the last 90 days"
+};
+
+function classifyIntentPrompt(question) {
+	const intents = getAskGa4Intents();
+	const lines = Object.entries(intents).map(([key, intent]) => `- ${key}: ${intent.description}`);
+	return `You are a router for a Google Analytics 4 assistant. Match the user's question to exactly one category from this list:
+
+${lines.join("\n")}
+
+Question: "${question}"
+
+Respond with ONLY the category key (one of: ${Object.keys(intents).join(", ")}). No punctuation, no explanation, nothing else.`;
+}
+
+function parseIntentKey(rawOutput) {
+	const cleaned = String(rawOutput || "").trim().toLowerCase().replace(/[^a-z]/g, "");
+	return getAskGa4Intents()[cleaned] ? cleaned : null;
+}
+
+function summarizeIntentData(intentKey, data) {
+	switch (intentKey) {
+		case "overview": {
+			if (!data || data.length === 0) return null;
+			return data.filter(m => m.label !== "Live").map(m => `${m.label}: ${m.value}`).join("; ");
+		}
+		case "traffic": {
+			if (!data || data.length === 0) return null;
+			return data.slice(0, 8)
+				.map(r => `${r.channel}: ${r.sessions} sessions (${r.share}% share, ${r.engagementRate} engagement)`)
+				.join("; ");
+		}
+		case "devices": {
+			if (!data || data.length === 0) return null;
+			return data
+				.map(r => `${r.device}: ${r.sessions} sessions (${r.share}% share, ${r.engagementRate} engagement)`)
+				.join("; ");
+		}
+		case "events": {
+			const rows = data?.rows || [];
+			if (rows.length === 0) return null;
+			return rows.slice(0, 10).map(r => `${r.name}: ${r.count} events, ${r.users} users`).join("; ");
+		}
+		case "landing": {
+			if (!data || data.length === 0) return null;
+			return data.slice(0, 10)
+				.map(r => `${r.path}: ${r.sessions} sessions, ${r.engagementRate} engagement, ${r.bounceRate} bounce`)
+				.join("; ");
+		}
+		case "retention": {
+			if (!data || data.total === 0) return null;
+			return `New users: ${data.newUsersFormatted} (${data.newShare}%); Returning users: ${data.returningUsersFormatted} (${data.returningShare}%); Total: ${data.totalFormatted}`;
+		}
+		case "search": {
+			if (!data || data.length === 0) return null;
+			return data.slice(0, 10).map(r => `"${r.term}": ${r.count} searches`).join("; ");
+		}
+		default:
+			return null;
+	}
+}
+
+function buildGroundedAnswerPrompt(question, intentLabel, dataSummary, propertyLabel, dateRange) {
+	const period = ASK_GA4_DATE_LABELS[dateRange] || dateRange;
+	return `You are a concise GA4 analytics assistant answering a question about "${propertyLabel}" over ${period}.
+
+Question: "${question}"
+
+Here is the real ${intentLabel} data for this period:
+${dataSummary}
+
+Answer the question in 2-3 plain English sentences using only this data. Be specific with numbers. Do not use bullet points or headers. If the data doesn't fully answer the question, say what it does show.`;
+}
+
+function getAskGa4RequestBuilders() {
+	return {
+		traffic: GA4AnalyticsUtils.buildTrafficSourceRequest,
+		devices: GA4AnalyticsUtils.buildDeviceCategoryRequest,
+		events: GA4AnalyticsUtils.buildTopEventsRequest,
+		landing: GA4AnalyticsUtils.buildLandingPagesRequest,
+		retention: GA4AnalyticsUtils.buildNewVsReturningRequest,
+		search: GA4AnalyticsUtils.buildSiteSearchRequest
+	};
+}
+
+function getAskGa4RowBuilders() {
+	return {
+		traffic: GA4AnalyticsUtils.buildTrafficSourceRows,
+		devices: GA4AnalyticsUtils.buildDeviceCategoryRows,
+		events: GA4AnalyticsUtils.buildTopEventRows,
+		landing: GA4AnalyticsUtils.buildLandingPageRows,
+		retention: GA4AnalyticsUtils.buildNewVsReturningData,
+		search: GA4AnalyticsUtils.buildSiteSearchRows
+	};
+}
+
+async function fetchIntentReport(intentKey, numericId, token, dateRange) {
+	const builder = getAskGa4RequestBuilders()[intentKey];
+	if (!builder) return null;
+
+	const response = await fetch(`${GA4_API}${numericId}:runReport`, {
+		method: "POST",
+		headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+		body: JSON.stringify(builder(dateRange))
+	});
+	const body = await response.json();
+	if (!response.ok) {
+		const error = new Error(body.error?.message || "Ask GA4 API error");
+		error.status = response.status;
+		throw error;
+	}
+	return body;
+}
+
+function shapeIntentData(intentKey, report) {
+	const shaper = getAskGa4RowBuilders()[intentKey];
+	return shaper ? shaper(report) : null;
+}
+
+let askAbortController = null;
+
+async function askGa4(question) {
+	const output = document.getElementById("ask-ga4-output");
+	const link = document.getElementById("ask-ga4-link");
+	const btn = document.getElementById("btn-ask-ga4");
+	if (!output || !btn) return;
+
+	if (askAbortController) {
+		askAbortController.abort();
+		askAbortController = null;
+		btn.textContent = "Ask";
+		output.className = "ai-digest-output error";
+		output.textContent = "Cancelled.";
+		return;
+	}
+
+	const trimmed = String(question || "").trim();
+	if (!trimmed) return;
+
+	link.hidden = true;
+	link.href = "";
+
+	const properties = getProperties();
+	const property = properties[getSelectedIndex()];
+	if (!property) {
+		output.className = "ai-digest-output error";
+		output.textContent = "Add or select a property first.";
+		return;
+	}
+
+	const numericId = getNumericId(property.id);
+	if (!numericId) {
+		output.className = "ai-digest-output error";
+		output.textContent = "Select a valid property first.";
+		return;
+	}
+
+	if (typeof navigator !== "undefined" && !navigator.onLine) {
+		output.className = "ai-digest-output error";
+		output.textContent = "No connection. Check your network.";
+		return;
+	}
+
+	if (typeof chrome === "undefined" || !chrome.identity) {
+		output.className = "ai-digest-output error";
+		output.textContent = "Ask GA4 requires the installed extension.";
+		return;
+	}
+
+	askAbortController = new AbortController();
+	btn.textContent = "Cancel";
+	output.className = "ai-digest-output loading";
+	output.textContent = "Thinking…";
+
+	try {
+		let modelReady = false;
+		const session = await LanguageModel.create({
+			signal: askAbortController.signal,
+			expectedInputs: [{ type: "text", languages: ["en"] }],
+			expectedOutputs: [{ type: "text", languages: ["en"] }],
+			monitor(m) {
+				m.addEventListener("downloadprogress", e => {
+					if (modelReady) return;
+					const pct = Math.round(e.loaded * 100);
+					output.textContent = `Downloading AI model: ${pct}%${pct < 100 ? " — Click Cancel to stop." : ""}`;
+				});
+			}
+		});
+		modelReady = true;
+		output.textContent = "Thinking…";
+
+		const rawIntent = await session.prompt(classifyIntentPrompt(trimmed), { signal: askAbortController.signal });
+		const intentKey = parseIntentKey(rawIntent);
+
+		if (!intentKey) {
+			session.destroy();
+			output.className = "ai-digest-output error";
+			output.textContent = "Couldn't match that to data I can fetch. Try asking about traffic sources, devices, events, landing pages, new vs. returning users, or site search terms.";
+			return;
+		}
+
+		const intent = getAskGa4Intents()[intentKey];
+		let dataSummary;
+
+		if (intentKey === "overview") {
+			dataSummary = summarizeIntentData("overview", lastDigestMetrics);
+		} else {
+			let token;
+			try {
+				token = await getIdentityToken(false);
+			} catch {
+				session.destroy();
+				output.className = "ai-digest-output error";
+				output.textContent = "Google authentication failed. Try again.";
+				return;
+			}
+
+			let report;
+			try {
+				report = await fetchIntentReport(intentKey, numericId, token, getDateRange());
+			} catch (error) {
+				if (!isAuthApiError(error)) throw error;
+				await removeIdentityToken(token);
+				token = await getIdentityToken(true);
+				report = await fetchIntentReport(intentKey, numericId, token, getDateRange());
+			}
+
+			const data = shapeIntentData(intentKey, report);
+			dataSummary = summarizeIntentData(intentKey, data);
+		}
+
+		if (!dataSummary) {
+			session.destroy();
+			output.className = "ai-digest-output";
+			output.textContent = `No ${intent.label.toLowerCase()} data found for the selected date range.`;
+			if (intent.path) {
+				link.href = buildHref(property.id, intent.path, getDateRange());
+				link.textContent = `Open ${intent.label} report →`;
+				link.hidden = false;
+			}
+			return;
+		}
+
+		const propertyLabel = property.label || "this property";
+		const prompt = buildGroundedAnswerPrompt(trimmed, intent.label, dataSummary, propertyLabel, getDateRange());
+
+		output.textContent = "";
+		output.className = "ai-digest-output";
+
+		const stream = session.promptStreaming(prompt, { signal: askAbortController.signal });
+		for await (const chunk of stream) {
+			output.textContent += chunk;
+		}
+
+		session.destroy();
+
+		if (intent.path) {
+			link.href = buildHref(property.id, intent.path, getDateRange());
+			link.textContent = `Open ${intent.label} report →`;
+			link.onclick = () => recordRecentReport({
+				label: `Ask: ${intent.label}`,
+				propertyId: property.id,
+				path: intent.path
+			});
+			link.hidden = false;
+		}
+	} catch (err) {
+		if (err.name === "AbortError") return;
+		output.className = "ai-digest-output error";
+		if (err?.status === 429) output.textContent = "Rate limit reached. Try again in a moment.";
+		else if (err?.status === 403) output.textContent = "Analytics permission denied.";
+		else if (err?.status === 401) output.textContent = "Google authentication expired.";
+		else {
+			const isDownloadStall = err.message?.toLowerCase().includes("download");
+			output.textContent = isDownloadStall
+				? "Model download stalled. Try again — Chrome will resume from where it left off."
+				: "Could not answer: " + (err.message || "unknown error");
+		}
+	} finally {
+		askAbortController = null;
+		btn.textContent = "Ask";
+	}
+}
+
+function initAskGa4() {
+	if (typeof LanguageModel === "undefined") return;
+
+	const section = document.getElementById("ask-ga4");
+	if (section) section.hidden = false;
+
+	const form = document.getElementById("ask-ga4-form");
+	const input = document.getElementById("ask-ga4-input");
+	if (!form || !input) return;
+
+	form.addEventListener("submit", event => {
+		event.preventDefault();
+		askGa4(input.value);
+	});
 }
 
 async function loadMetrics(el, numericId, token, dateRange, requestId) {
@@ -2322,6 +2861,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 	await initStorage();
 	renderReports();
 	initAiDigest();
+	initAskGa4();
+	initCommandSearch();
 	showMain();
 
 	document.getElementById("btn-add").onclick = showAdd;

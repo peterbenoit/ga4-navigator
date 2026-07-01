@@ -137,6 +137,43 @@
     });
   }
 
+  // Scores a single searchable item against a query for the command palette.
+  // Returns null when the item does not match at all.
+  function scoreCommand(item, normalizedQuery) {
+    const label = String(item?.label || "").trim().toLowerCase();
+    const meta = String(item?.meta || "").trim().toLowerCase();
+
+    if (!normalizedQuery) return 0;
+    if (!label && !meta) return null;
+
+    if (label === normalizedQuery) return 100;
+    if (label.startsWith(normalizedQuery)) return 80;
+
+    const labelWordBoundary = new RegExp(`\\b${normalizedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
+    if (labelWordBoundary.test(label)) return 65;
+    if (label.includes(normalizedQuery)) return 55;
+    if (meta.startsWith(normalizedQuery)) return 40;
+    if (meta.includes(normalizedQuery)) return 30;
+
+    return null;
+  }
+
+  // Filters and ranks a flat list of { label, meta } command items by a free-text query.
+  // Empty query returns the original list order unchanged. Matching is case-insensitive
+  // and favors exact/prefix label matches over substring or metadata matches.
+  function filterCommands(items, query) {
+    const list = Array.isArray(items) ? items : [];
+    const normalizedQuery = String(query || "").trim().toLowerCase();
+
+    if (!normalizedQuery) return list.slice();
+
+    return list
+      .map((item, index) => ({ item, index, score: scoreCommand(item, normalizedQuery) }))
+      .filter(entry => entry.score !== null)
+      .sort((a, b) => (b.score - a.score) || (a.index - b.index))
+      .map(entry => entry.item);
+  }
+
   function addRecentReport(existing, report, limit = 5) {
     const item = {
       label: String(report?.label || "").trim(),
@@ -162,7 +199,8 @@
     normalizeStoredProperty,
     normalizeStoredProperties,
     hasDuplicateShortcut,
-    addRecentReport
+    addRecentReport,
+    filterCommands
   };
 
   if (typeof module !== "undefined" && module.exports) {

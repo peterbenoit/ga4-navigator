@@ -9,7 +9,8 @@ const {
   normalizeStoredShortcut,
   normalizeStoredProperties,
   hasDuplicateShortcut,
-  addRecentReport
+  addRecentReport,
+  filterCommands
 } = require("./shortcut-utils");
 
 test("parseGa4ReportUrl extracts the GA4 route id and report path from a GA4 URL", () => {
@@ -244,4 +245,61 @@ test("addRecentReport caps recent reports at five items", () => {
   assert.equal(recents.length, 5);
   assert.equal(recents[0].label, "Newest");
   assert.equal(recents.at(-1).label, "Report 3");
+});
+
+const COMMAND_FIXTURES = [
+  { label: "Traffic Acquisition", meta: "HOW they found you" },
+  { label: "Top Pages", meta: "WHAT they looked at" },
+  { label: "Realtime", meta: "Who's on your site right now" },
+  { label: "My Custom Funnel", meta: "peterbenoit.com · /reports/explorer" }
+];
+
+test("filterCommands returns the original order unchanged for an empty query", () => {
+  const result = filterCommands(COMMAND_FIXTURES, "");
+  assert.deepEqual(result, COMMAND_FIXTURES);
+});
+
+test("filterCommands returns the original order unchanged for a whitespace-only query", () => {
+  const result = filterCommands(COMMAND_FIXTURES, "   ");
+  assert.deepEqual(result, COMMAND_FIXTURES);
+});
+
+test("filterCommands ranks an exact label match first", () => {
+  const result = filterCommands(COMMAND_FIXTURES, "Realtime");
+  assert.equal(result[0].label, "Realtime");
+});
+
+test("filterCommands is case-insensitive", () => {
+  const result = filterCommands(COMMAND_FIXTURES, "TRAFFIC");
+  assert.equal(result[0].label, "Traffic Acquisition");
+});
+
+test("filterCommands ranks label prefix matches above mid-word substring matches", () => {
+  const result = filterCommands(COMMAND_FIXTURES, "top");
+  assert.equal(result[0].label, "Top Pages");
+});
+
+test("filterCommands matches on metadata when the label does not match", () => {
+  const result = filterCommands(COMMAND_FIXTURES, "peterbenoit.com");
+  assert.equal(result.length, 1);
+  assert.equal(result[0].label, "My Custom Funnel");
+});
+
+test("filterCommands excludes items with no match in label or meta", () => {
+  const result = filterCommands(COMMAND_FIXTURES, "zzz-no-match");
+  assert.deepEqual(result, []);
+});
+
+test("filterCommands treats special regex characters in the query as literal text", () => {
+  const items = [
+    { label: "Funnel (beta)", meta: "" },
+    { label: "Other report", meta: "" }
+  ];
+  const result = filterCommands(items, "(beta)");
+  assert.deepEqual(result, [items[0]]);
+});
+
+test("filterCommands handles a non-array items argument", () => {
+  assert.deepEqual(filterCommands(null, "anything"), []);
+  assert.deepEqual(filterCommands(undefined, "anything"), []);
 });
